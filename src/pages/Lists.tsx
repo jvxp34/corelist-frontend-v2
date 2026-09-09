@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-
+import { Plus, ShoppingCart, Home, X, ArrowRight } from 'lucide-react'
 
 function Lists() {
   const [mostrarFormulario, setMostrarFormulario] = useState(false)
@@ -61,9 +61,10 @@ function Lists() {
         <button
           type="button"
           onClick={() => setMostrarFormulario(true)}
-          className="rounded-lg bg-blue-600 px-4 py-3 font-semibold text-white transition hover:bg-blue-700"
+          className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-3 font-semibold text-white transition hover:bg-blue-700"
         >
-          + Nova lista
+          <Plus size={18} />
+          Nova lista
         </button>
 
       </div>
@@ -95,6 +96,7 @@ function Lists() {
               }}
               className="rounded-lg border border-gray-300 px-4 py-2 font-medium hover:bg-gray-50"
             >
+              <X size={18} />
               Cancelar
             </button>
 
@@ -103,6 +105,7 @@ function Lists() {
               onClick={criarLista}
               className="rounded-lg bg-blue-600 px-4 py-2 font-medium text-white hover:bg-blue-700"
             >
+              <X size={18} />
               Criar lista
             </button>
 
@@ -121,9 +124,17 @@ function Lists() {
             className="rounded-2xl bg-white p-6 shadow"
           >
 
-            <h2 className="text-xl font-bold">
-              🛒 {lista.nome}
-            </h2>
+            <div className="flex items-center gap-3">
+              {lista.id === 1 ? (
+                <ShoppingCart size={22} />
+              ) : (
+                <Home size={22} />
+              )}
+
+              <h2 className="text-xl font-bold">
+                {lista.nome}
+              </h2>
+            </div>
 
             <p className="mt-2 text-gray-500">
               {lista.produtos} produtos
@@ -139,6 +150,7 @@ function Lists() {
               className="mt-6 rounded-lg border border-gray-300 px-4 py-2 font-medium hover:bg-gray-50"
             >
               Abrir lista
+              <ArrowRight size={18}/>
             </button>
 
           </div>

@@ -1,10 +1,12 @@
+import { Lightbulb } from 'lucide-react'
+
 function Dashboard() {
   return (
     <div className="min-h-screen bg-gray-100 p-6">
       <div className="mx-auto max-w-6xl">
 
         <h1 className="text-3xl font-bold text-gray-900">
-          Olá, João 👋
+          Olá, João 
         </h1>
 
         <p className="mt-2 text-gray-500">
@@ -44,7 +46,12 @@ function Dashboard() {
 
         <div className="mt-6 rounded-2xl bg-white p-6 shadow">
           <h2 className="text-xl font-bold">
-            💡 Oportunidades
+          <div className="flex items-center gap-3">
+            <Lightbulb size={22} />
+            <h2 className="text-xl font-bold">
+              Oportunidades
+            </h2>
+          </div>
           </h2>
 
           <div className="mt-4 space-y-3">

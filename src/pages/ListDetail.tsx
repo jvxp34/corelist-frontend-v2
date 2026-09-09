@@ -1,5 +1,7 @@
 import { useParams } from 'react-router-dom'
 import { useState } from 'react'
+import { Pencil, Trash2, Plus, ArrowLeft } from 'lucide-react'
+
 
 function ListDetail() {
   const [mostrarFormulario, setMostrarFormulario] = useState(false)
@@ -190,7 +192,8 @@ function ListDetail() {
           onClick={() => setMostrarFormulario(true)}
           className="mt-6 rounded-lg bg-blue-600 px-4 py-3 font-semibold text-white hover:bg-blue-700"
         >
-          + Adicionar produto
+          <Plus size={18}/>
+          Adicionar produto
         </button>
 
         {mostrarFormulario && (
@@ -342,7 +345,7 @@ function ListDetail() {
                     }
                     className="rounded-lg px-3 py-2 text-red-600 hover:bg-red-50"
                   >
-                    🗑️
+                    <Trash2 size={18}/>
                   </button>
 
                 </div>
