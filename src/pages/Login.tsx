@@ -1,31 +1,63 @@
 import { useState } from 'react'
+
 import { useNavigate } from 'react-router-dom'
 
 import Button from '../components/Button'
+
 import Input from '../components/Input'
+
+import API_URL from '../api/api'
 
 function Login() {
   const navigate = useNavigate()
 
-  const [usuario, setUsuario] = useState('')
+  const [email, setEmail] = useState('')
   const [senha, setSenha] = useState('')
   const [erro, setErro] = useState('')
+  const [carregando, setCarregando] = useState(false)
 
-  function handleLogin() {
-    if (usuario === 'admin' && senha === 'admin123') {
-      setErro('')
-      navigate('/dashboard')
+  async function handleLogin() {
+    if (email.trim() === '' || senha === '') {
+      setErro('Preencha e-mail e senha.')
       return
     }
 
-    setErro('Usuário ou senha incorretos.')
+    try {
+      setCarregando(true)
+      setErro('')
+
+      const response = await fetch(`${API_URL}/auth/login/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: email,
+          password: senha,
+        }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        setErro('E-mail ou senha incorretos.')
+        return
+      }
+
+      localStorage.setItem('access_token', data.access)
+      localStorage.setItem('refresh_token', data.refresh)
+
+      navigate('/dashboard')
+    } catch {
+      setErro('Não foi possível conectar ao servidor.')
+    } finally {
+      setCarregando(false)
+    }
   }
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-gray-100 px-4">
-
       <div className="w-full max-w-md rounded-2xl bg-white p-8 shadow-lg">
-
         <h1 className="mb-2 text-center text-3xl font-bold text-gray-900">
           CoreList 2.0
         </h1>
@@ -35,11 +67,11 @@ function Login() {
         </p>
 
         <div className="space-y-4">
-
           <Input
-            placeholder="Usuário"
-            value={usuario}
-            onChange={(event) => setUsuario(event.target.value)}
+            type="email"
+            placeholder="E-mail"
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
           />
 
           <Input
@@ -56,13 +88,10 @@ function Login() {
           )}
 
           <Button onClick={handleLogin}>
-            Entrar
+            {carregando ? 'Entrando...' : 'Entrar'}
           </Button>
-
         </div>
-
       </div>
-
     </div>
   )
 }
