@@ -10,35 +10,37 @@ function Products() {
   const [unidade, setUnidade] = useState('')
 
   const [produtos, setProdutos] = useState([
-    {
-      id: 1,
-      nome: 'Arroz',
-      categoria: 'Alimentos',
-      preco: 12.00,
-      unidade: '5 kg',
-    },
-    {
-      id: 2,
-      nome: 'Café',
-      categoria: 'Bebidas',
-      preco: 18.90,
-      unidade: '500 g',
-    },
-    {
-      id: 3,
-      nome: 'Detergente',
-      categoria: 'Limpeza',
-      preco: 3.49,
-      unidade: '500 ml',
-    },
-    {
-      id: 4,
-      nome: 'Leite',
-      categoria: 'Alimentos',
-      preco: 5.99,
-      unidade: '1 L',
-    },
-  ])
+  {
+    id: 1,
+    nome: 'Arroz',
+    categoria: 'Alimentos',
+    preco: 12.00,
+    unidade: '5 kg',
+  },
+  {
+    id: 2,
+    nome: 'Café',
+    categoria: 'Bebidas',
+    preco: 18.90,
+    unidade: '500 g',
+  },
+  {
+    id: 3,
+    nome: 'Detergente',
+    categoria: 'Limpeza',
+    preco: 3.49,
+    unidade: '500 ml',
+  },
+  {
+    id: 4,
+    nome: 'Leite',
+    categoria: 'Alimentos',
+    preco: 5.99,
+    unidade: '1 L',
+  },
+])
+
+  
 
   function removerProduto(id: number) {
     setProdutos(

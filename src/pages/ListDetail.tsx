@@ -1,6 +1,6 @@
 import { useParams } from 'react-router-dom'
 import { useState } from 'react'
-import { Pencil, Trash2, Plus, ArrowLeft } from 'lucide-react'
+import { Trash2, Plus, } from 'lucide-react'
 
 
 function ListDetail() {

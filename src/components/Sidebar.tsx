@@ -9,7 +9,6 @@ import {
   ScanLine,
   Users,
   User,
-  Settings,
   LogOut,
 } from 'lucide-react'
 

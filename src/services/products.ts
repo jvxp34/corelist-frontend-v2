@@ -10,8 +10,20 @@ export interface Product {
   updated_at: string
 }
 
+function getAuthHeaders() {
+  const token = localStorage.getItem('access_token')
+
+  return {
+    'Content-Type': 'application/json',
+    Authorization: `Bearer ${token}`,
+  }
+}
+
 export async function listarProdutos(): Promise<Product[]> {
-  const response = await fetch(`${API_URL}/products/`)
+  const response = await fetch(`${API_URL}/products/`, {
+    method: 'GET',
+    headers: getAuthHeaders(),
+  })
 
   if (!response.ok) {
     throw new Error('Erro ao buscar produtos')
@@ -28,9 +40,7 @@ export async function criarProduto(produto: {
 }): Promise<Product> {
   const response = await fetch(`${API_URL}/products/`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
+    headers: getAuthHeaders(),
     body: JSON.stringify(produto),
   })
 
@@ -44,6 +54,7 @@ export async function criarProduto(produto: {
 export async function removerProduto(id: number): Promise<void> {
   const response = await fetch(`${API_URL}/products/${id}/`, {
     method: 'DELETE',
+    headers: getAuthHeaders(),
   })
 
   if (!response.ok) {
