@@ -5,6 +5,7 @@ export interface Product {
   name: string
   description: string
   price: number
+  unit: string
   category: number | null
   created_at: string
   updated_at: string
@@ -36,6 +37,7 @@ export async function criarProduto(produto: {
   name: string
   description: string
   price: number
+  unit: string
   category: number | null
 }): Promise<Product> {
   const response = await fetch(`${API_URL}/products/`, {
