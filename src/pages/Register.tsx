@@ -7,42 +7,70 @@ import {
   EyeOff,
   LockKeyhole,
   Mail,
-  ShoppingCart,
   Sparkles,
-  TrendingDown,
+  User,
 } from 'lucide-react'
 
 import { useNavigate } from 'react-router-dom'
 
 import API_URL from '../api/api'
 
-function Login() {
+function Register() {
   const navigate = useNavigate()
 
+  const [nome, setNome] = useState('')
   const [email, setEmail] = useState('')
   const [senha, setSenha] = useState('')
-  const [mostrarSenha, setMostrarSenha] = useState(false)
+  const [confirmarSenha, setConfirmarSenha] =
+    useState('')
+
+  const [mostrarSenha, setMostrarSenha] =
+    useState(false)
+
+  const [mostrarConfirmarSenha, setMostrarConfirmarSenha] =
+    useState(false)
+
   const [erro, setErro] = useState('')
+  const [sucesso, setSucesso] = useState('')
   const [carregando, setCarregando] = useState(false)
 
-  async function handleLogin() {
-    if (email.trim() === '' || senha === '') {
-      setErro('Preencha e-mail e senha.')
+  async function handleRegister() {
+    if (
+      nome.trim() === '' ||
+      email.trim() === '' ||
+      senha === '' ||
+      confirmarSenha === ''
+    ) {
+      setErro('Preencha todos os campos.')
+      return
+    }
+
+    if (senha !== confirmarSenha) {
+      setErro('As senhas não coincidem.')
+      return
+    }
+
+    if (senha.length < 6) {
+      setErro(
+        'A senha deve ter pelo menos 6 caracteres.',
+      )
       return
     }
 
     try {
       setCarregando(true)
       setErro('')
+      setSucesso('')
 
       const response = await fetch(
-        `${API_URL}/auth/login/`,
+        `${API_URL}/auth/register/`,
         {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
+            name: nome.trim(),
             email: email.trim(),
             password: senha,
           }),
@@ -52,21 +80,28 @@ function Login() {
       const data = await response.json()
 
       if (!response.ok) {
-        setErro('E-mail ou senha incorretos.')
+        if (data?.email) {
+          setErro(
+            Array.isArray(data.email)
+              ? data.email[0]
+              : 'Este e-mail já está cadastrado.',
+          )
+        } else {
+          setErro(
+            'Não foi possível criar sua conta.',
+          )
+        }
+
         return
       }
 
-      localStorage.setItem(
-        'access_token',
-        data.access,
+      setSucesso(
+        'Conta criada com sucesso! Você será redirecionado para o login.',
       )
 
-      localStorage.setItem(
-        'refresh_token',
-        data.refresh,
-      )
-
-      navigate('/dashboard')
+      setTimeout(() => {
+        navigate('/login')
+      }, 1200)
     } catch {
       setErro(
         'Não foi possível conectar ao servidor.',
@@ -80,7 +115,7 @@ function Login() {
     event: React.FormEvent<HTMLFormElement>,
   ) {
     event.preventDefault()
-    handleLogin()
+    handleRegister()
   }
 
   return (
@@ -113,21 +148,20 @@ function Login() {
           <div className="relative z-10 max-w-lg">
             <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-2 text-sm font-medium backdrop-blur-sm">
               <Sparkles size={15} />
-              Organize melhor suas compras
+              Comece agora
             </div>
 
             <h2 className="mt-6 text-4xl font-bold leading-tight xl:text-5xl">
-              Sua lista.
+              Organize.
               <br />
-              Seus preços.
+              Economize.
               <br />
-              Seu controle.
+              Simplifique.
             </h2>
 
             <p className="mt-5 max-w-md text-base leading-7 text-blue-50">
-              Tenha suas listas de compras organizadas,
-              acompanhe seus gastos e descubra oportunidades
-              para economizar.
+              Crie sua conta no CoreList e tenha um lugar
+              para organizar suas compras, listas e produtos.
             </p>
 
             <div className="mt-8 space-y-3">
@@ -137,27 +171,27 @@ function Login() {
                 </div>
 
                 <span className="text-sm text-blue-50">
-                  Organize suas listas de compras
+                  Crie listas de compras
                 </span>
               </div>
 
               <div className="flex items-center gap-3">
                 <div className="rounded-full bg-white/15 p-2">
-                  <TrendingDown size={17} />
+                  <CheckCircle2 size={17} />
                 </div>
 
                 <span className="text-sm text-blue-50">
-                  Acompanhe seus gastos e economias
+                  Cadastre seus produtos
                 </span>
               </div>
 
               <div className="flex items-center gap-3">
                 <div className="rounded-full bg-white/15 p-2">
-                  <ShoppingCart size={17} />
+                  <CheckCircle2 size={17} />
                 </div>
 
                 <span className="text-sm text-blue-50">
-                  Tenha tudo em um só lugar
+                  Acompanhe suas compras
                 </span>
               </div>
             </div>
@@ -191,15 +225,15 @@ function Login() {
             <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
               <div>
                 <p className="text-sm font-semibold text-blue-600">
-                  Bem-vindo de volta
+                  Comece agora
                 </p>
 
                 <h2 className="mt-2 text-3xl font-bold tracking-tight text-slate-900">
-                  Entre na sua conta
+                  Criar sua conta
                 </h2>
 
                 <p className="mt-2 text-sm leading-6 text-slate-500">
-                  Acesse suas listas e continue organizando
+                  Crie sua conta para começar a organizar
                   suas compras.
                 </p>
               </div>
@@ -208,6 +242,35 @@ function Login() {
                 onSubmit={handleSubmit}
                 className="mt-8 space-y-5"
               >
+                {/* Nome */}
+                <div>
+                  <label
+                    htmlFor="nome"
+                    className="text-sm font-semibold text-slate-700"
+                  >
+                    Nome
+                  </label>
+
+                  <div className="relative mt-2">
+                    <User
+                      size={18}
+                      className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
+                    />
+
+                    <input
+                      id="nome"
+                      type="text"
+                      value={nome}
+                      onChange={(event) =>
+                        setNome(event.target.value)
+                      }
+                      placeholder="Seu nome"
+                      autoComplete="name"
+                      className="w-full rounded-xl border border-slate-200 bg-slate-50 py-3.5 pl-11 pr-4 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10"
+                    />
+                  </div>
+                </div>
+
                 {/* E-mail */}
                 <div>
                   <label
@@ -239,21 +302,12 @@ function Login() {
 
                 {/* Senha */}
                 <div>
-                  <div className="flex items-center justify-between">
-                    <label
-                      htmlFor="senha"
-                      className="text-sm font-semibold text-slate-700"
-                    >
-                      Senha
-                    </label>
-
-                    <button
-                      type="button"
-                      className="text-xs font-semibold text-blue-600 hover:text-blue-700"
-                    >
-                      Esqueceu a senha?
-                    </button>
-                  </div>
+                  <label
+                    htmlFor="senha"
+                    className="text-sm font-semibold text-slate-700"
+                  >
+                    Senha
+                  </label>
 
                   <div className="relative mt-2">
                     <LockKeyhole
@@ -272,8 +326,8 @@ function Login() {
                       onChange={(event) =>
                         setSenha(event.target.value)
                       }
-                      placeholder="Digite sua senha"
-                      autoComplete="current-password"
+                      placeholder="Crie uma senha"
+                      autoComplete="new-password"
                       className="w-full rounded-xl border border-slate-200 bg-slate-50 py-3.5 pl-11 pr-12 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10"
                     />
 
@@ -284,14 +338,60 @@ function Login() {
                           (valor) => !valor,
                         )
                       }
-                      className="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"
-                      aria-label={
-                        mostrarSenha
-                          ? 'Ocultar senha'
-                          : 'Mostrar senha'
-                      }
+                      className="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
                     >
                       {mostrarSenha ? (
+                        <EyeOff size={18} />
+                      ) : (
+                        <Eye size={18} />
+                      )}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Confirmar senha */}
+                <div>
+                  <label
+                    htmlFor="confirmarSenha"
+                    className="text-sm font-semibold text-slate-700"
+                  >
+                    Confirmar senha
+                  </label>
+
+                  <div className="relative mt-2">
+                    <LockKeyhole
+                      size={18}
+                      className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
+                    />
+
+                    <input
+                      id="confirmarSenha"
+                      type={
+                        mostrarConfirmarSenha
+                          ? 'text'
+                          : 'password'
+                      }
+                      value={confirmarSenha}
+                      onChange={(event) =>
+                        setConfirmarSenha(
+                          event.target.value,
+                        )
+                      }
+                      placeholder="Digite a senha novamente"
+                      autoComplete="new-password"
+                      className="w-full rounded-xl border border-slate-200 bg-slate-50 py-3.5 pl-11 pr-12 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10"
+                    />
+
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setMostrarConfirmarSenha(
+                          (valor) => !valor,
+                        )
+                      }
+                      className="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+                    >
+                      {mostrarConfirmarSenha ? (
                         <EyeOff size={18} />
                       ) : (
                         <Eye size={18} />
@@ -309,6 +409,15 @@ function Login() {
                   </div>
                 )}
 
+                {/* Sucesso */}
+                {sucesso && (
+                  <div className="rounded-xl border border-green-200 bg-green-50 px-4 py-3">
+                    <p className="text-sm font-medium text-green-700">
+                      {sucesso}
+                    </p>
+                  </div>
+                )}
+
                 {/* Botão */}
                 <button
                   type="submit"
@@ -316,8 +425,8 @@ function Login() {
                   className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-blue-500 px-4 py-3.5 font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:from-blue-700 hover:to-blue-600 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {carregando
-                    ? 'Entrando...'
-                    : 'Entrar na conta'}
+                    ? 'Criando conta...'
+                    : 'Criar minha conta'}
 
                   {!carregando && (
                     <ArrowRight size={18} />
@@ -325,27 +434,25 @@ function Login() {
                 </button>
               </form>
 
-              {/* Cadastro */}
+              {/* Login */}
               <div className="mt-7 border-t border-slate-100 pt-6 text-center">
                 <p className="text-sm text-slate-500">
-                  Ainda não tem uma conta?
+                  Já possui uma conta?
                 </p>
 
                 <button
                   type="button"
-                  onClick={() =>
-                    navigate('/register')
-                  }
+                  onClick={() => navigate('/login')}
                   className="mt-2 font-semibold text-blue-600 hover:text-blue-700"
                 >
-                  Criar minha conta
+                  Entrar na minha conta
                 </button>
               </div>
             </div>
 
             <p className="mt-6 text-center text-xs text-slate-400">
-              Ao entrar, você poderá acessar suas listas,
-              produtos e histórico de compras.
+              Crie sua conta e comece a organizar suas compras
+              com o CoreList.
             </p>
           </div>
         </div>
@@ -354,4 +461,4 @@ function Login() {
   )
 }
 
-export default Login
+export default Register

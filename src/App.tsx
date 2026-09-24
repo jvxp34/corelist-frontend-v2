@@ -11,6 +11,7 @@ import History from './pages/History'
 import Groups from './pages/Groups'
 import Profile from './pages/Profile'
 import ListDetail from './pages/ListDetail'
+import Register from './pages/Register'
 
 import MainLayout from './layouts/MainLayout'
 
@@ -23,6 +24,11 @@ function App() {
         <Route
           path="/login"
           element={<Login />}
+        />
+
+        <Route
+          path="/register"
+          element={<Register />}
         />
 
         {/* Área principal do sistema */}
