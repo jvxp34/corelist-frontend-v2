@@ -1,31 +1,29 @@
 import { useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 
-import {
-  ArrowRight,
-  CheckCircle2,
-  Eye,
-  EyeOff,
-  LockKeyhole,
-  Mail,
-  ShoppingCart,
-  Sparkles,
-  TrendingDown,
-} from 'lucide-react'
+import AuthLayout, {
+  BOTAO_AUTH,
+  CAMPO_AUTH,
+  CampoSenha,
+  ROTULO_AUTH,
+} from '../components/AuthLayout'
+import { entrar } from '../services/auth'
 
-import { useNavigate } from 'react-router-dom'
-
-import API_URL from '../api/api'
 
 function Login() {
   const navigate = useNavigate()
 
   const [email, setEmail] = useState('')
   const [senha, setSenha] = useState('')
-  const [mostrarSenha, setMostrarSenha] = useState(false)
   const [erro, setErro] = useState('')
   const [carregando, setCarregando] = useState(false)
 
-  async function handleLogin() {
+
+  async function handleSubmit(
+    event: React.FormEvent<HTMLFormElement>,
+  ) {
+    event.preventDefault()
+
     if (email.trim() === '' || senha === '') {
       setErro('Preencha e-mail e senha.')
       return
@@ -35,323 +33,81 @@ function Login() {
       setCarregando(true)
       setErro('')
 
-      const response = await fetch(
-        `${API_URL}/auth/login/`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            email: email.trim(),
-            password: senha,
-          }),
-        },
-      )
-
-      const data = await response.json()
-
-      if (!response.ok) {
-        setErro('E-mail ou senha incorretos.')
-        return
-      }
-
-      localStorage.setItem(
-        'access_token',
-        data.access,
-      )
-
-      localStorage.setItem(
-        'refresh_token',
-        data.refresh,
-      )
+      await entrar(email.trim(), senha)
 
       navigate('/dashboard')
-    } catch {
-      setErro(
-        'Não foi possível conectar ao servidor.',
-      )
-    } finally {
+    } catch (error) {
+      setErro((error as Error).message)
       setCarregando(false)
     }
   }
 
-  function handleSubmit(
-    event: React.FormEvent<HTMLFormElement>,
-  ) {
-    event.preventDefault()
-    handleLogin()
-  }
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <div className="grid min-h-screen lg:grid-cols-2">
-        {/* Painel visual */}
-        <div className="relative hidden overflow-hidden bg-gradient-to-br from-blue-700 via-blue-600 to-cyan-500 p-10 text-white lg:flex lg:flex-col lg:justify-between">
-          <div className="absolute -right-32 -top-32 h-80 w-80 rounded-full bg-white/10" />
+    <AuthLayout
+      titulo="Entre na sua conta"
+      subtitulo="Acesse suas listas e continue de onde parou."
+    >
+      <form
+        onSubmit={handleSubmit}
+        noValidate
+        className="space-y-5"
+      >
+        <div>
+          <label htmlFor="email" className={ROTULO_AUTH}>
+            E-mail
+          </label>
 
-          <div className="absolute -bottom-32 -left-20 h-96 w-96 rounded-full bg-cyan-300/10" />
-
-          <div className="relative z-10">
-            <div className="flex items-center gap-3">
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/15 backdrop-blur-sm">
-                <Sparkles size={23} />
-              </div>
-
-              <div>
-                <h1 className="text-2xl font-bold">
-                  CoreList
-                </h1>
-
-                <p className="text-sm text-blue-100">
-                  Compras inteligentes
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="relative z-10 max-w-lg">
-            <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-2 text-sm font-medium backdrop-blur-sm">
-              <Sparkles size={15} />
-              Organize melhor suas compras
-            </div>
-
-            <h2 className="mt-6 text-4xl font-bold leading-tight xl:text-5xl">
-              Sua lista.
-              <br />
-              Seus preços.
-              <br />
-              Seu controle.
-            </h2>
-
-            <p className="mt-5 max-w-md text-base leading-7 text-blue-50">
-              Tenha suas listas de compras organizadas,
-              acompanhe seus gastos e descubra oportunidades
-              para economizar.
-            </p>
-
-            <div className="mt-8 space-y-3">
-              <div className="flex items-center gap-3">
-                <div className="rounded-full bg-white/15 p-2">
-                  <CheckCircle2 size={17} />
-                </div>
-
-                <span className="text-sm text-blue-50">
-                  Organize suas listas de compras
-                </span>
-              </div>
-
-              <div className="flex items-center gap-3">
-                <div className="rounded-full bg-white/15 p-2">
-                  <TrendingDown size={17} />
-                </div>
-
-                <span className="text-sm text-blue-50">
-                  Acompanhe seus gastos e economias
-                </span>
-              </div>
-
-              <div className="flex items-center gap-3">
-                <div className="rounded-full bg-white/15 p-2">
-                  <ShoppingCart size={17} />
-                </div>
-
-                <span className="text-sm text-blue-50">
-                  Tenha tudo em um só lugar
-                </span>
-              </div>
-            </div>
-          </div>
-
-          <div className="relative z-10 text-sm text-blue-100">
-            © 2026 CoreList
-          </div>
+          <input
+            id="email"
+            type="email"
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            placeholder="seu@email.com"
+            autoComplete="email"
+            className={CAMPO_AUTH}
+          />
         </div>
 
-        {/* Formulário */}
-        <div className="flex min-h-screen items-center justify-center p-5 sm:p-8">
-          <div className="w-full max-w-md">
-            {/* Logo mobile */}
-            <div className="mb-8 flex items-center justify-center gap-3 lg:hidden">
-              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-600 to-cyan-500 text-white shadow-sm">
-                <Sparkles size={21} />
-              </div>
+        <CampoSenha
+          id="senha"
+          rotulo="Senha"
+          valor={senha}
+          aoMudar={setSenha}
+          autoComplete="current-password"
+          placeholder="Sua senha"
+        />
 
-              <div>
-                <h1 className="text-xl font-bold text-slate-900">
-                  CoreList
-                </h1>
+        {erro && (
+          <p
+            role="alert"
+            className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700"
+          >
+            {erro}
+          </p>
+        )}
 
-                <p className="text-xs text-slate-500">
-                  Compras inteligentes
-                </p>
-              </div>
-            </div>
+        <button
+          type="submit"
+          disabled={carregando}
+          className={BOTAO_AUTH}
+        >
+          {carregando ? 'Entrando...' : 'Entrar'}
+        </button>
+      </form>
 
-            <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
-              <div>
-                <p className="text-sm font-semibold text-blue-600">
-                  Bem-vindo de volta
-                </p>
-
-                <h2 className="mt-2 text-3xl font-bold tracking-tight text-slate-900">
-                  Entre na sua conta
-                </h2>
-
-                <p className="mt-2 text-sm leading-6 text-slate-500">
-                  Acesse suas listas e continue organizando
-                  suas compras.
-                </p>
-              </div>
-
-              <form
-                onSubmit={handleSubmit}
-                className="mt-8 space-y-5"
-              >
-                {/* E-mail */}
-                <div>
-                  <label
-                    htmlFor="email"
-                    className="text-sm font-semibold text-slate-700"
-                  >
-                    E-mail
-                  </label>
-
-                  <div className="relative mt-2">
-                    <Mail
-                      size={18}
-                      className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
-                    />
-
-                    <input
-                      id="email"
-                      type="email"
-                      value={email}
-                      onChange={(event) =>
-                        setEmail(event.target.value)
-                      }
-                      placeholder="seu@email.com"
-                      autoComplete="email"
-                      className="w-full rounded-xl border border-slate-200 bg-slate-50 py-3.5 pl-11 pr-4 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10"
-                    />
-                  </div>
-                </div>
-
-                {/* Senha */}
-                <div>
-                  <div className="flex items-center justify-between">
-                    <label
-                      htmlFor="senha"
-                      className="text-sm font-semibold text-slate-700"
-                    >
-                      Senha
-                    </label>
-
-                    <button
-                      type="button"
-                      className="text-xs font-semibold text-blue-600 hover:text-blue-700"
-                    >
-                      Esqueceu a senha?
-                    </button>
-                  </div>
-
-                  <div className="relative mt-2">
-                    <LockKeyhole
-                      size={18}
-                      className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
-                    />
-
-                    <input
-                      id="senha"
-                      type={
-                        mostrarSenha
-                          ? 'text'
-                          : 'password'
-                      }
-                      value={senha}
-                      onChange={(event) =>
-                        setSenha(event.target.value)
-                      }
-                      placeholder="Digite sua senha"
-                      autoComplete="current-password"
-                      className="w-full rounded-xl border border-slate-200 bg-slate-50 py-3.5 pl-11 pr-12 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10"
-                    />
-
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setMostrarSenha(
-                          (valor) => !valor,
-                        )
-                      }
-                      className="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"
-                      aria-label={
-                        mostrarSenha
-                          ? 'Ocultar senha'
-                          : 'Mostrar senha'
-                      }
-                    >
-                      {mostrarSenha ? (
-                        <EyeOff size={18} />
-                      ) : (
-                        <Eye size={18} />
-                      )}
-                    </button>
-                  </div>
-                </div>
-
-                {/* Erro */}
-                {erro && (
-                  <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3">
-                    <p className="text-sm font-medium text-red-700">
-                      {erro}
-                    </p>
-                  </div>
-                )}
-
-                {/* Botão */}
-                <button
-                  type="submit"
-                  disabled={carregando}
-                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-blue-500 px-4 py-3.5 font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:from-blue-700 hover:to-blue-600 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {carregando
-                    ? 'Entrando...'
-                    : 'Entrar na conta'}
-
-                  {!carregando && (
-                    <ArrowRight size={18} />
-                  )}
-                </button>
-              </form>
-
-              {/* Cadastro */}
-              <div className="mt-7 border-t border-slate-100 pt-6 text-center">
-                <p className="text-sm text-slate-500">
-                  Ainda não tem uma conta?
-                </p>
-
-                <button
-                  type="button"
-                  onClick={() =>
-                    navigate('/register')
-                  }
-                  className="mt-2 font-semibold text-blue-600 hover:text-blue-700"
-                >
-                  Criar minha conta
-                </button>
-              </div>
-            </div>
-
-            <p className="mt-6 text-center text-xs text-slate-400">
-              Ao entrar, você poderá acessar suas listas,
-              produtos e histórico de compras.
-            </p>
-          </div>
-        </div>
-      </div>
-    </div>
+      <p className="mt-8 text-center text-sm text-muted">
+        Ainda não tem conta?{' '}
+        <Link
+          to="/register"
+          className="font-semibold text-brand-600 hover:text-brand-800"
+        >
+          Criar conta
+        </Link>
+      </p>
+    </AuthLayout>
   )
 }
+
 
 export default Login
