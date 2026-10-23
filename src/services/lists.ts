@@ -310,6 +310,10 @@ export interface Promotion {
   list_name: string
   quantity: number | string
   product: string
+  brand: string
+  package_size: string
+  image_url: string
+  data_source: 'manual' | 'openfoodfacts'
   current_price: number | string
   historical_average: number | string
   savings: number | string

@@ -22,6 +22,7 @@ import {
   listarProdutos,
   type Product,
 } from '../services/products'
+import FotoProduto from '../components/FotoProduto'
 import {
   formatarData,
   formatarMoeda,
@@ -517,6 +518,9 @@ function ListDetail() {
 
   function renderizarItem(item: ListItem) {
     const nome = nomeDoProduto(item)
+    const produto = produtos.find(
+      (atual) => atual.id === item.product,
+    )
     const qtd = formatarQuantidade(item.quantity)
 
     if (itemEditando === item.id) {
@@ -621,9 +625,28 @@ function ListDetail() {
             className="h-6 w-6 shrink-0 accent-brand-600"
           />
 
+          <span
+            className={`shrink-0 transition ${
+              item.is_completed ? 'opacity-50' : ''
+            }`}
+          >
+            <FotoProduto
+              url={produto?.image_url}
+              nome={nome}
+              tamanho="sm"
+            />
+          </span>
+
           <span className="min-w-0">
+            {produto?.brand && (
+              <span className="block truncate text-[11px] font-semibold uppercase tracking-wide text-muted">
+                {produto.brand}
+                {produto.package_size && ` · ${produto.package_size}`}
+              </span>
+            )}
+
             <span
-              className={`block truncate text-base font-semibold ${
+              className={`line-clamp-2 text-base font-semibold leading-snug ${
                 item.is_completed
                   ? 'text-slate-400 line-through'
                   : 'text-ink'

@@ -5,6 +5,8 @@ import {
   listarProdutos,
   criarProduto,
   removerProduto,
+  buscarPorCodigoDeBarras,
+  type OrigemDosDados,
   type Product,
 } from '../services/products'
 import {
@@ -12,13 +14,15 @@ import {
   type Category,
 } from '../services/categories'
 import { formatarMoeda } from '../utils/formatar'
+import FotoProduto from '../components/FotoProduto'
+import CreditoOpenFoodFacts from '../components/CreditoOpenFoodFacts'
 
 
 const BOTAO_PRINCIPAL =
   'inline-flex h-11 items-center justify-center rounded-xl bg-brand-600 px-5 text-[15px] font-semibold text-white transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-60'
 
 const BOTAO_SECUNDARIO =
-  'inline-flex h-11 items-center justify-center rounded-xl border border-line bg-white px-5 text-[15px] font-semibold text-ink transition hover:bg-canvas'
+  'inline-flex h-11 items-center justify-center rounded-xl border border-line bg-white px-5 text-[15px] font-semibold text-ink transition hover:bg-canvas disabled:cursor-not-allowed disabled:opacity-60'
 
 const CAMPO =
   'mt-1.5 h-11 w-full rounded-xl border border-slate-300 bg-white px-3.5 text-[15px] outline-none transition focus:border-brand-600 focus:ring-2 focus:ring-brand-100'
@@ -26,6 +30,12 @@ const CAMPO =
 const ROTULO = 'text-sm font-semibold text-slate-700'
 
 const SEM_CATEGORIA = 'Sem categoria'
+
+
+interface AvisoBusca {
+  tipo: 'ok' | 'info' | 'erro'
+  texto: string
+}
 
 
 function Products() {
@@ -40,11 +50,20 @@ function Products() {
 
   const [mostrarFormulario, setMostrarFormulario] =
     useState(false)
+  const [codigo, setCodigo] = useState('')
   const [nome, setNome] = useState('')
+  const [marca, setMarca] = useState('')
+  const [embalagem, setEmbalagem] = useState('')
+  const [fotoUrl, setFotoUrl] = useState('')
+  const [origemDados, setOrigemDados] =
+    useState<OrigemDosDados>('manual')
   const [categoria, setCategoria] = useState('')
   const [preco, setPreco] = useState('')
   const [unidade, setUnidade] = useState('')
   const [salvando, setSalvando] = useState(false)
+  const [buscando, setBuscando] = useState(false)
+  const [avisoBusca, setAvisoBusca] =
+    useState<AvisoBusca | null>(null)
 
 
   useEffect(() => {
@@ -72,10 +91,63 @@ function Products() {
 
   function fecharFormulario() {
     setMostrarFormulario(false)
+    setCodigo('')
     setNome('')
+    setMarca('')
+    setEmbalagem('')
+    setFotoUrl('')
+    setOrigemDados('manual')
     setCategoria('')
     setPreco('')
     setUnidade('')
+    setAvisoBusca(null)
+  }
+
+
+  async function buscarCodigo() {
+    const codigoLimpo = codigo.replace(/\s/g, '')
+
+    if (codigoLimpo === '') {
+      setAvisoBusca({
+        tipo: 'erro',
+        texto: 'Digite o código de barras da embalagem.',
+      })
+      return
+    }
+
+    try {
+      setBuscando(true)
+      setAvisoBusca(null)
+
+      const resultado = await buscarPorCodigoDeBarras(codigoLimpo)
+
+      if (resultado.origem === 'catalogo') {
+        setAvisoBusca({
+          tipo: 'info',
+          texto: `"${resultado.produto.name}" já está no catálogo com este código. Não precisa cadastrar de novo.`,
+        })
+        return
+      }
+
+      const { sugestao } = resultado
+
+      setNome(sugestao.name)
+      setMarca(sugestao.brand)
+      setEmbalagem(sugestao.package_size)
+      setFotoUrl(sugestao.image_url)
+      setOrigemDados(sugestao.data_source)
+      setAvisoBusca({
+        tipo: 'ok',
+        texto: 'Produto encontrado no Open Food Facts. Confira os dados e cadastre.',
+      })
+    } catch (error) {
+      setAvisoBusca({
+        tipo: 'erro',
+        texto: (error as Error).message,
+      })
+    } finally {
+      setBuscando(false)
+    }
   }
 
 
@@ -104,12 +176,17 @@ function Products() {
         price: preco === '' ? null : Number(preco),
         unit: unidade.trim(),
         category: categoria === '' ? null : Number(categoria),
+        brand: marca.trim(),
+        package_size: embalagem.trim(),
+        barcode: codigo.replace(/\s/g, ''),
+        image_url: fotoUrl,
+        data_source: origemDados,
       })
 
       setProdutos((atuais) => [...(atuais ?? []), novo])
       fecharFormulario()
-    } catch {
-      setErro('Não foi possível cadastrar o produto.')
+    } catch (error) {
+      setErro((error as Error).message)
     } finally {
       setSalvando(false)
     }
@@ -156,7 +233,10 @@ function Products() {
 
   const filtrados = (produtos ?? [])
     .filter((produto) =>
-      produto.name.toLowerCase().includes(termo),
+      [produto.name, produto.brand, produto.barcode]
+        .join(' ')
+        .toLowerCase()
+        .includes(termo),
     )
     .sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'))
 
@@ -179,6 +259,18 @@ function Products() {
           ? -1
           : a.localeCompare(b, 'pt-BR'),
   )
+
+  const temDadosDoOpenFoodFacts =
+    (produtos ?? []).some(
+      (produto) => produto.data_source === 'openfoodfacts',
+    ) || origemDados === 'openfoodfacts'
+
+
+  const corAviso = {
+    ok: 'border-green-200 bg-green-50 text-green-800',
+    info: 'border-brand-100 bg-brand-50 text-brand-800',
+    erro: 'border-amber-200 bg-amber-50 text-amber-800',
+  }
 
 
   return (
@@ -226,19 +318,106 @@ function Products() {
             Novo produto
           </h2>
 
-          <div className="mt-4 grid gap-4 sm:grid-cols-2">
-            <label className={ROTULO}>
-              Nome
-              <input
-                type="text"
-                value={nome}
-                onChange={(event) => setNome(event.target.value)}
-                placeholder="Ex: Arroz 5kg"
-                autoFocus
-                className={CAMPO}
-              />
+          <div className="mt-4">
+            <label htmlFor="codigo-barras" className={ROTULO}>
+              Código de barras{' '}
+              <span className="font-normal text-muted">
+                opcional, preenche o resto sozinho
+              </span>
             </label>
 
+            <div className="mt-1.5 flex gap-2">
+              <input
+                id="codigo-barras"
+                type="text"
+                inputMode="numeric"
+                autoComplete="off"
+                value={codigo}
+                onChange={(event) => {
+                  setCodigo(event.target.value)
+                  setAvisoBusca(null)
+                }}
+                onKeyDown={(event) => {
+                  // Enter no código busca, em vez de enviar o formulário.
+                  if (event.key === 'Enter') {
+                    event.preventDefault()
+                    buscarCodigo()
+                  }
+                }}
+                placeholder="Ex: 7891000100103"
+                autoFocus
+                className="h-11 min-w-0 flex-1 rounded-xl border border-slate-300 bg-white px-3.5 text-[15px] tabular-nums outline-none transition focus:border-brand-600 focus:ring-2 focus:ring-brand-100"
+              />
+
+              <button
+                type="button"
+                onClick={buscarCodigo}
+                disabled={buscando}
+                className={BOTAO_SECUNDARIO}
+              >
+                {buscando ? 'Buscando...' : 'Buscar'}
+              </button>
+            </div>
+
+            {avisoBusca && (
+              <p
+                role="status"
+                className={`mt-2 rounded-xl border px-3.5 py-2.5 text-sm font-medium ${corAviso[avisoBusca.tipo]}`}
+              >
+                {avisoBusca.texto}
+              </p>
+            )}
+          </div>
+
+          <div className="mt-5 flex gap-4">
+            {(fotoUrl || origemDados === 'openfoodfacts') && (
+              <FotoProduto
+                url={fotoUrl}
+                nome={nome || 'produto'}
+                tamanho="lg"
+              />
+            )}
+
+            <div className="grid min-w-0 flex-1 gap-4 sm:grid-cols-2">
+              <label className={`${ROTULO} sm:col-span-2`}>
+                Nome
+                <input
+                  type="text"
+                  value={nome}
+                  onChange={(event) => setNome(event.target.value)}
+                  placeholder="Ex: Arroz branco tipo 1"
+                  className={CAMPO}
+                />
+              </label>
+
+              <label className={ROTULO}>
+                Marca{' '}
+                <span className="font-normal text-muted">opcional</span>
+                <input
+                  type="text"
+                  value={marca}
+                  onChange={(event) => setMarca(event.target.value)}
+                  className={CAMPO}
+                />
+              </label>
+
+              <label className={ROTULO}>
+                Embalagem{' '}
+                <span className="font-normal text-muted">opcional</span>
+                <input
+                  type="text"
+                  value={embalagem}
+                  onChange={(event) =>
+                    setEmbalagem(event.target.value)
+                  }
+                  placeholder="Ex: 5 kg, 1 L, 500 g"
+                  className={CAMPO}
+                />
+              </label>
+            </div>
+          </div>
+
+          <div className="mt-4 grid gap-4 sm:grid-cols-3">
             <label className={ROTULO}>
               Categoria{' '}
               <span className="font-normal text-muted">opcional</span>
@@ -259,7 +438,7 @@ function Products() {
             </label>
 
             <label className={ROTULO}>
-              Preço de referência (R$){' '}
+              Preço de referência{' '}
               <span className="font-normal text-muted">opcional</span>
               <input
                 type="number"
@@ -282,7 +461,7 @@ function Products() {
                 onChange={(event) =>
                   setUnidade(event.target.value)
                 }
-                placeholder="Ex: kg, pacote, un."
+                placeholder="Ex: un., kg, pacote"
                 className={CAMPO}
               />
             </label>
@@ -320,7 +499,7 @@ function Products() {
           type="search"
           value={busca}
           onChange={(event) => setBusca(event.target.value)}
-          placeholder="Buscar produto"
+          placeholder="Buscar por nome, marca ou código"
           className="h-12 w-full rounded-xl border border-line bg-white pl-11 pr-4 text-[15px] outline-none transition focus:border-brand-600 focus:ring-2 focus:ring-brand-100"
         />
       </label>
@@ -350,44 +529,69 @@ function Products() {
               </h2>
 
               <ul className="divide-y divide-slate-100 overflow-hidden rounded-2xl border border-line bg-white">
-                {itens.map((produto) => (
-                  <li
-                    key={produto.id}
-                    className="flex items-center gap-3 py-2 pl-4 pr-2 sm:pl-5"
-                  >
-                    <div className="min-w-0 flex-1 py-1">
-                      <p className="truncate font-semibold">
-                        {produto.name}
-                      </p>
-                      {produto.unit && (
-                        <p className="text-sm text-muted">
-                          {produto.unit}
+                {itens.map((produto) => {
+                  const detalhes = [
+                    produto.package_size,
+                    produto.unit,
+                  ].filter(Boolean)
+
+                  return (
+                    <li
+                      key={produto.id}
+                      className="flex items-center gap-3 py-2.5 pl-3 pr-2 sm:pl-4"
+                    >
+                      <FotoProduto
+                        url={produto.image_url}
+                        nome={produto.name}
+                        tamanho="sm"
+                      />
+
+                      <div className="min-w-0 flex-1">
+                        {produto.brand && (
+                          <p className="truncate text-[11px] font-semibold uppercase tracking-wide text-muted">
+                            {produto.brand}
+                          </p>
+                        )}
+                        <p className="truncate font-semibold">
+                          {produto.name}
+                        </p>
+                        {detalhes.length > 0 && (
+                          <p className="truncate text-sm text-muted">
+                            {detalhes.join(' · ')}
+                          </p>
+                        )}
+                      </div>
+
+                      {produto.price !== null && (
+                        <p
+                          className="shrink-0 text-sm tabular-nums text-muted"
+                          title="Preço de referência"
+                        >
+                          {formatarMoeda(Number(produto.price))}
                         </p>
                       )}
-                    </div>
 
-                    {produto.price !== null && (
-                      <p
-                        className="shrink-0 text-sm tabular-nums text-muted"
-                        title="Preço de referência"
+                      <button
+                        type="button"
+                        onClick={() => remover(produto)}
+                        aria-label={`Remover ${produto.name}`}
+                        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-slate-400 transition hover:bg-red-50 hover:text-red-700"
                       >
-                        {formatarMoeda(Number(produto.price))}
-                      </p>
-                    )}
-
-                    <button
-                      type="button"
-                      onClick={() => remover(produto)}
-                      aria-label={`Remover ${produto.name}`}
-                      className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-slate-400 transition hover:bg-red-50 hover:text-red-700"
-                    >
-                      <Trash2 size={18} aria-hidden="true" />
-                    </button>
-                  </li>
-                ))}
+                        <Trash2 size={18} aria-hidden="true" />
+                      </button>
+                    </li>
+                  )
+                })}
               </ul>
             </section>
           ))}
+        </div>
+      )}
+
+
+      {temDadosDoOpenFoodFacts && (
+        <div className="mt-6">
+          <CreditoOpenFoodFacts />
         </div>
       )}
     </div>
