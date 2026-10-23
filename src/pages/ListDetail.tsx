@@ -22,7 +22,6 @@ import {
   listarProdutos,
   type Product,
 } from '../services/products'
-import FotoProduto from '../components/FotoProduto'
 import {
   formatarData,
   formatarMoeda,
@@ -624,18 +623,6 @@ function ListDetail() {
             disabled={!podeEditar || concluindo}
             className="h-6 w-6 shrink-0 accent-brand-600"
           />
-
-          <span
-            className={`shrink-0 transition ${
-              item.is_completed ? 'opacity-50' : ''
-            }`}
-          >
-            <FotoProduto
-              url={produto?.image_url}
-              nome={nome}
-              tamanho="sm"
-            />
-          </span>
 
           <span className="min-w-0">
             {produto?.brand && (

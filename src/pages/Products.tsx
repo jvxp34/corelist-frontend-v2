@@ -14,7 +14,6 @@ import {
   type Category,
 } from '../services/categories'
 import { formatarMoeda } from '../utils/formatar'
-import FotoProduto from '../components/FotoProduto'
 import CreditoOpenFoodFacts from '../components/CreditoOpenFoodFacts'
 
 
@@ -369,16 +368,9 @@ function Products() {
             )}
           </div>
 
-          <div className="mt-5 flex gap-4">
-            {(fotoUrl || origemDados === 'openfoodfacts') && (
-              <FotoProduto
-                url={fotoUrl}
-                nome={nome || 'produto'}
-                tamanho="lg"
-              />
-            )}
-
-            <div className="grid min-w-0 flex-1 gap-4 sm:grid-cols-2">
+          {/* A foto encontrada é salva, mas só aparece em "Produtos com menor preço". */}
+          <div className="mt-5">
+            <div className="grid gap-4 sm:grid-cols-2">
               <label className={`${ROTULO} sm:col-span-2`}>
                 Nome
                 <input
@@ -538,15 +530,9 @@ function Products() {
                   return (
                     <li
                       key={produto.id}
-                      className="flex items-center gap-3 py-2.5 pl-3 pr-2 sm:pl-4"
+                      className="flex items-center gap-3 py-2 pl-4 pr-2 sm:pl-5"
                     >
-                      <FotoProduto
-                        url={produto.image_url}
-                        nome={produto.name}
-                        tamanho="sm"
-                      />
-
-                      <div className="min-w-0 flex-1">
+                      <div className="min-w-0 flex-1 py-1">
                         {produto.brand && (
                           <p className="truncate text-[11px] font-semibold uppercase tracking-wide text-muted">
                             {produto.brand}
