@@ -1,297 +1,196 @@
+import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
+
 import {
-  ArrowRight,
-  Clock3,
-  Heart,
-  MapPin,
-  ShoppingCart,
-  Sparkles,
-  Tag,
-  TrendingDown,
-} from 'lucide-react'
+  obterPromocoes,
+  type Promotion,
+} from '../services/lists'
+import {
+  formatarMoeda,
+  formatarQuantidade,
+} from '../utils/formatar'
+
+
+interface Oferta {
+  id: number
+  listaId: number
+  listaNome: string
+  produto: string
+  quantidade: number
+  precoAtual: number
+  mediaHistorica: number
+  economiaUnitaria: number
+  economiaTotal: number
+  desconto: number
+}
+
+
+// O backend manda decimais como número ou texto; aqui tudo vira número.
+function paraOferta(promocao: Promotion): Oferta {
+  const precoAtual = Number(promocao.current_price)
+  const mediaHistorica = Number(promocao.historical_average)
+  const quantidade = Number(promocao.quantity)
+  const economiaUnitaria = Number(promocao.savings)
+
+  return {
+    id: promocao.item_id,
+    listaId: promocao.list_id,
+    listaNome: promocao.list_name,
+    produto: promocao.product,
+    quantidade,
+    precoAtual,
+    mediaHistorica,
+    economiaUnitaria,
+    economiaTotal: economiaUnitaria * quantidade,
+    desconto:
+      mediaHistorica > 0
+        ? Math.round((economiaUnitaria / mediaHistorica) * 100)
+        : 0,
+  }
+}
+
 
 function Promotions() {
-  const ofertas = [
-    {
-      id: 1,
-      produto: 'Café 500g',
-      mercado: 'Mercado Central',
-      precoAtual: 16.9,
-      precoAnterior: 20.9,
-      desconto: 19,
-      validade: 'Até domingo',
-    },
-    {
-      id: 2,
-      produto: 'Arroz 5kg',
-      mercado: 'Supermercado Bom Preço',
-      precoAtual: 22.9,
-      precoAnterior: 27.9,
-      desconto: 18,
-      validade: 'Até sábado',
-    },
-    {
-      id: 3,
-      produto: 'Leite 1L',
-      mercado: 'Mercado Econômico',
-      precoAtual: 4.79,
-      precoAnterior: 5.99,
-      desconto: 20,
-      validade: 'Até sexta',
-    },
-    {
-      id: 4,
-      produto: 'Detergente',
-      mercado: 'Supermercado Popular',
-      precoAtual: 2.49,
-      precoAnterior: 3.29,
-      desconto: 24,
-      validade: 'Até domingo',
-    },
-  ]
+  const [ofertas, setOfertas] =
+    useState<Oferta[] | null>(null)
+
+  const [erro, setErro] = useState('')
+
+
+  useEffect(() => {
+    let cancelado = false
+
+    obterPromocoes()
+      .then((promocoes) => {
+        if (!cancelado) {
+          setOfertas(
+            promocoes
+              .map(paraOferta)
+              .sort((a, b) => b.desconto - a.desconto),
+          )
+        }
+      })
+      .catch(() => {
+        if (!cancelado) {
+          setOfertas([])
+          setErro('Não foi possível carregar os produtos.')
+        }
+      })
+
+    return () => {
+      cancelado = true
+    }
+  }, [])
+
+
+  const economiaTotal = (ofertas ?? []).reduce(
+    (total, oferta) => total + oferta.economiaTotal,
+    0,
+  )
+
 
   return (
-    <div className="mx-auto max-w-6xl">
-      {/* Cabeçalho */}
-      <div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-end">
-        <div>
-          <div className="flex items-center gap-2">
-            <div className="rounded-xl bg-orange-50 p-2 text-orange-500">
-              <Tag size={20} />
-            </div>
+    <div className="mx-auto max-w-4xl">
+      <h1 className="font-display text-[28px] font-bold tracking-tight sm:text-[32px]">
+        Produtos com menor preço
+      </h1>
 
-            <span className="text-sm font-semibold text-orange-600">
-              Ofertas para você
-            </span>
-          </div>
+      <p className="mt-1 max-w-2xl text-muted">
+        Produtos das suas listas em andamento que estão mais
+        baratos do que a média que você pagou nas compras
+        concluídas.
+      </p>
 
-          <h1 className="mt-3 text-3xl font-bold tracking-tight text-gray-900">
-            Promoções
-          </h1>
 
-          <p className="mt-2 max-w-2xl text-gray-500">
-            Encontre ofertas e acompanhe oportunidades para
-            economizar nas suas compras.
-          </p>
-        </div>
-
-        <button
-          type="button"
-          className="flex items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm font-semibold text-gray-700 shadow-sm transition hover:bg-gray-50"
+      {erro && (
+        <div
+          role="alert"
+          className="mt-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-red-700"
         >
-          Ver todas
-          <ArrowRight size={17} />
-        </button>
-      </div>
-
-      {/* Destaque */}
-      <div className="relative mt-8 overflow-hidden rounded-3xl bg-gradient-to-r from-blue-700 via-blue-600 to-cyan-500 p-6 text-white shadow-lg sm:p-8">
-        <div className="absolute -right-16 -top-20 h-64 w-64 rounded-full bg-white/10" />
-
-        <div className="absolute -bottom-24 right-24 h-48 w-48 rounded-full bg-cyan-300/10" />
-
-        <div className="relative z-10 max-w-2xl">
-          <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-2 text-sm font-semibold backdrop-blur-sm">
-            <Sparkles size={16} />
-            Oportunidade da semana
-          </div>
-
-          <h2 className="mt-5 text-2xl font-bold sm:text-3xl">
-            Economize nas compras que você já faz
-          </h2>
-
-          <p className="mt-3 max-w-xl leading-7 text-blue-50">
-            Compare preços, acompanhe descontos e descubra
-            onde suas compras podem sair mais em conta.
-          </p>
-
-          <div className="mt-6 flex flex-wrap gap-3">
-            <div className="flex items-center gap-2 rounded-xl bg-white/10 px-4 py-3 backdrop-blur-sm">
-              <TrendingDown size={18} />
-
-              <span className="text-sm font-medium">
-                Até 24% de desconto
-              </span>
-            </div>
-
-            <div className="flex items-center gap-2 rounded-xl bg-white/10 px-4 py-3 backdrop-blur-sm">
-              <ShoppingCart size={18} />
-
-              <span className="text-sm font-medium">
-                4 ofertas encontradas
-              </span>
-            </div>
-          </div>
+          {erro}
         </div>
-      </div>
+      )}
 
-      {/* Resumo */}
-      <div className="mt-6 grid gap-4 sm:grid-cols-3">
-        <div className="rounded-2xl bg-white p-5 shadow-sm">
-          <div className="flex items-center gap-3">
-            <div className="rounded-xl bg-green-50 p-3 text-green-600">
-              <TrendingDown size={20} />
-            </div>
 
-            <div>
-              <p className="text-sm text-gray-500">
-                Maior desconto
-              </p>
-
-              <p className="mt-1 text-2xl font-bold text-gray-900">
-                24%
-              </p>
-            </div>
-          </div>
+      {ofertas === null ? (
+        <div className="mt-6 rounded-2xl border border-line bg-white p-8 text-center text-muted">
+          Carregando...
         </div>
-
-        <div className="rounded-2xl bg-white p-5 shadow-sm">
-          <div className="flex items-center gap-3">
-            <div className="rounded-xl bg-blue-50 p-3 text-blue-600">
-              <Tag size={20} />
-            </div>
-
-            <div>
-              <p className="text-sm text-gray-500">
-                Ofertas disponíveis
-              </p>
-
-              <p className="mt-1 text-2xl font-bold text-gray-900">
-                {ofertas.length}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="rounded-2xl bg-white p-5 shadow-sm">
-          <div className="flex items-center gap-3">
-            <div className="rounded-xl bg-orange-50 p-3 text-orange-500">
-              <Clock3 size={20} />
-            </div>
-
-            <div>
-              <p className="text-sm text-gray-500">
-                Ofertas recentes
-              </p>
-
-              <p className="mt-1 text-2xl font-bold text-gray-900">
-                Hoje
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Ofertas */}
-      <div className="mt-8">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-2xl font-bold text-gray-900">
-              Ofertas em destaque
-            </h2>
-
-            <p className="mt-1 text-sm text-gray-500">
-              Algumas oportunidades encontradas.
+      ) : ofertas.length === 0 ? (
+        !erro && (
+          <div className="mt-6 rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center">
+            <p className="font-display text-lg font-semibold">
+              Nenhum produto abaixo da sua média agora
             </p>
-          </div>
-        </div>
 
-        <div className="mt-5 grid gap-5 md:grid-cols-2">
-          {ofertas.map((oferta) => (
-            <div
-              key={oferta.id}
-              className="group overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-md"
+            <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-muted">
+              Para aparecer aqui, o produto precisa ter preço numa
+              lista em andamento e em pelo menos uma compra
+              concluída. Quanto mais compras você concluir, melhor
+              fica a comparação.
+            </p>
+
+            <Link
+              to="/listas"
+              className="mt-5 inline-flex h-11 items-center rounded-xl bg-brand-600 px-5 text-[15px] font-semibold text-white hover:bg-brand-700"
             >
-              <div className="relative bg-gradient-to-br from-slate-50 to-blue-50 p-6">
-                <span className="absolute right-4 top-4 rounded-full bg-green-100 px-3 py-1 text-xs font-bold text-green-700">
-                  -{oferta.desconto}%
-                </span>
-
-                <div className="flex h-28 items-center justify-center">
-                  <div className="flex h-20 w-20 items-center justify-center rounded-3xl bg-white shadow-sm">
-                    <ShoppingCart
-                      size={34}
-                      className="text-blue-600"
-                    />
-                  </div>
-                </div>
-
-                <button
-                  type="button"
-                  className="absolute bottom-4 right-4 rounded-full bg-white p-2.5 text-gray-400 shadow-sm transition hover:text-red-500"
-                  aria-label={`Favoritar ${oferta.produto}`}
-                >
-                  <Heart size={18} />
-                </button>
-              </div>
-
-              <div className="p-5">
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <h3 className="text-lg font-bold text-gray-900">
-                      {oferta.produto}
-                    </h3>
-
-                    <div className="mt-2 flex items-center gap-1.5 text-sm text-gray-500">
-                      <MapPin size={15} />
-                      {oferta.mercado}
-                    </div>
-                  </div>
-
-                  <div className="text-right">
-                    <p className="text-xs text-gray-400 line-through">
-                      R${' '}
-                      {oferta.precoAnterior.toFixed(2)}
-                    </p>
-
-                    <p className="text-xl font-bold text-blue-600">
-                      R$ {oferta.precoAtual.toFixed(2)}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="mt-5 flex items-center justify-between border-t border-gray-100 pt-4">
-                  <div className="flex items-center gap-2 text-sm text-gray-500">
-                    <Clock3 size={15} />
-                    {oferta.validade}
-                  </div>
-
-                  <button
-                    type="button"
-                    className="flex items-center gap-1.5 text-sm font-semibold text-blue-600 transition hover:text-blue-700"
-                  >
-                    Ver oferta
-                    <ArrowRight size={16} />
-                  </button>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Aviso */}
-      <div className="mt-8 rounded-2xl border border-blue-100 bg-blue-50 p-5">
-        <div className="flex gap-3">
-          <div className="mt-0.5 rounded-lg bg-white p-2 text-blue-600 shadow-sm">
-            <Sparkles size={18} />
+              Ver minhas listas
+            </Link>
           </div>
-
-          <div>
-            <h3 className="font-semibold text-blue-900">
-              Compare antes de comprar
-            </h3>
-
-            <p className="mt-1 text-sm leading-6 text-blue-700">
-              Os preços exibidos nesta tela são
-              demonstrativos por enquanto. Quando integrarmos
-              as promoções ao backend, esses dados poderão ser
-              carregados automaticamente.
+        )
+      ) : (
+        <>
+          <div className="mt-6 rounded-2xl bg-brand-50 px-5 py-4 text-brand-800">
+            <p className="text-[15px]">
+              Comprando esses {ofertas.length}{' '}
+              {ofertas.length === 1 ? 'produto' : 'produtos'} pelo
+              preço de agora, você economiza{' '}
+              <strong className="tabular-nums">
+                {formatarMoeda(economiaTotal)}
+              </strong>{' '}
+              em relação à sua média.
             </p>
           </div>
-        </div>
-      </div>
+
+          <ul className="mt-5 divide-y divide-slate-100 overflow-hidden rounded-2xl border border-line bg-white">
+            {ofertas.map((oferta) => (
+              <li key={oferta.id}>
+                <Link
+                  to={`/listas/${oferta.listaId}`}
+                  className="flex items-center gap-4 px-4 py-4 transition hover:bg-canvas sm:px-5"
+                >
+                  <div className="min-w-0 flex-1">
+                    <p className="font-semibold">
+                      {oferta.produto}
+                    </p>
+
+                    <p className="mt-0.5 truncate text-sm text-muted">
+                      Sua média {formatarMoeda(oferta.mediaHistorica)}
+                      {' · '}
+                      {formatarQuantidade(oferta.quantidade)} un. em{' '}
+                      {oferta.listaNome}
+                    </p>
+                  </div>
+
+                  <div className="shrink-0 text-right">
+                    <p className="font-semibold tabular-nums">
+                      {formatarMoeda(oferta.precoAtual)}
+                    </p>
+
+                    <p className="text-sm font-semibold text-green-700">
+                      -{oferta.desconto}% · economia de{' '}
+                      {formatarMoeda(oferta.economiaTotal)}
+                    </p>
+                  </div>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
     </div>
   )
 }
+
 
 export default Promotions

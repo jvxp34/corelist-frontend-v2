@@ -3,11 +3,14 @@ import API_URL from '../api/api'
 export interface List {
   id: number
   name: string
-  budget: number | string
+  budget: number | string | null
   is_completed: boolean
   completed_at: string | null
   created_at: string
   updated_at: string
+  // O serializer de listas também devolve os itens e o total calculado.
+  items?: ListItem[]
+  total?: number | string
 }
 
 export interface ListItem {
@@ -50,7 +53,7 @@ export async function listarListas(): Promise<List[]> {
 
 export async function criarLista(lista: {
   name: string
-  budget: number
+  budget: number | null
 }): Promise<List> {
   const response = await fetch(`${API_URL}/lists/`, {
     method: 'POST',
@@ -88,6 +91,7 @@ export async function adicionarItemNaLista(
   item: {
     product: number
     quantity: number
+    price?: number | null
   },
 ): Promise<ListItem> {
   const response = await fetch(
@@ -111,7 +115,7 @@ export async function atualizarItemDaLista(
   itemId: number,
   dados: {
     quantity?: number
-    price?: number
+    price?: number | null
     is_completed?: boolean
   },
 ): Promise<ListItem> {
@@ -146,6 +150,26 @@ export async function removerItemDaLista(
   if (!response.ok) {
     throw new Error('Erro ao remover item da lista')
   }
+}
+
+/*
+ * HISTÓRICO (listas concluídas)
+ */
+
+export async function obterHistorico(): Promise<List[]> {
+  const response = await fetch(
+    `${API_URL}/lists/history/`,
+    {
+      method: 'GET',
+      headers: getAuthHeaders(),
+    },
+  )
+
+  if (!response.ok) {
+    throw new Error('Erro ao buscar histórico de compras')
+  }
+
+  return response.json()
 }
 
 /*
@@ -231,6 +255,43 @@ export async function obterInsights(): Promise<ListInsight[]> {
   } = await response.json()
 
   return data.insights
+}
+
+/*
+ * PROMOÇÕES
+ * Itens de listas ativas com preço abaixo da média que o próprio
+ * usuário pagou em compras concluídas.
+ */
+
+export interface Promotion {
+  item_id: number
+  list_id: number
+  list_name: string
+  quantity: number | string
+  product: string
+  current_price: number | string
+  historical_average: number | string
+  savings: number | string
+}
+
+export async function obterPromocoes(): Promise<Promotion[]> {
+  const response = await fetch(
+    `${API_URL}/lists/promotions/`,
+    {
+      method: 'GET',
+      headers: getAuthHeaders(),
+    },
+  )
+
+  if (!response.ok) {
+    throw new Error('Erro ao buscar promoções')
+  }
+
+  const data: {
+    promotions: Promotion[]
+  } = await response.json()
+
+  return data.promotions
 }
 
 export async function concluirLista(

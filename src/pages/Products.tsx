@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Search, Trash2 } from 'lucide-react'
 
 import {
   listarProdutos,
@@ -6,96 +7,90 @@ import {
   removerProduto,
   type Product,
 } from '../services/products'
-
 import {
   listarCategorias,
   type Category,
 } from '../services/categories'
+import { formatarMoeda } from '../utils/formatar'
 
-import { Plus, Search, Package, Trash2 } from 'lucide-react'
+
+const BOTAO_PRINCIPAL =
+  'inline-flex h-11 items-center justify-center rounded-xl bg-brand-600 px-5 text-[15px] font-semibold text-white transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-60'
+
+const BOTAO_SECUNDARIO =
+  'inline-flex h-11 items-center justify-center rounded-xl border border-line bg-white px-5 text-[15px] font-semibold text-ink transition hover:bg-canvas'
+
+const CAMPO =
+  'mt-1.5 h-11 w-full rounded-xl border border-slate-300 bg-white px-3.5 text-[15px] outline-none transition focus:border-brand-600 focus:ring-2 focus:ring-brand-100'
+
+const ROTULO = 'text-sm font-semibold text-slate-700'
+
+const SEM_CATEGORIA = 'Sem categoria'
+
 
 function Products() {
+  const [produtos, setProdutos] =
+    useState<Product[] | null>(null)
+
+  const [categorias, setCategorias] =
+    useState<Category[]>([])
+
   const [busca, setBusca] = useState('')
+  const [erro, setErro] = useState('')
 
-  const [mostrarFormulario, setMostrarFormulario] = useState(false)
-
-  const [nomeProduto, setNomeProduto] = useState('')
+  const [mostrarFormulario, setMostrarFormulario] =
+    useState(false)
+  const [nome, setNome] = useState('')
   const [categoria, setCategoria] = useState('')
   const [preco, setPreco] = useState('')
   const [unidade, setUnidade] = useState('')
-
-  const [produtos, setProdutos] = useState<Product[]>([])
-  const [categoriasDisponiveis, setCategoriasDisponiveis] = useState<Category[]>([])
-
-  const [carregando, setCarregando] = useState(true)
   const [salvando, setSalvando] = useState(false)
-  const [erro, setErro] = useState('')
+
 
   useEffect(() => {
-    async function carregarDados() {
-      try {
-        setCarregando(true)
-        setErro('')
+    let cancelado = false
 
-        const [produtosData, categoriasData] = await Promise.all([
-          listarProdutos(),
-          listarCategorias(),
-        ])
+    Promise.all([listarProdutos(), listarCategorias()])
+      .then(([produtosData, categoriasData]) => {
+        if (!cancelado) {
+          setProdutos(produtosData)
+          setCategorias(categoriasData)
+        }
+      })
+      .catch(() => {
+        if (!cancelado) {
+          setProdutos([])
+          setErro('Não foi possível carregar os produtos.')
+        }
+      })
 
-        setProdutos(produtosData)
-        setCategoriasDisponiveis(categoriasData)
-      } catch (error) {
-        console.error(error)
-        setErro('Não foi possível carregar os produtos.')
-      } finally {
-        setCarregando(false)
-      }
+    return () => {
+      cancelado = true
     }
-
-    carregarDados()
   }, [])
 
-  const produtosFiltrados = produtos.filter((produto) =>
-    produto.name.toLowerCase().includes(busca.toLowerCase())
-  )
 
-  const categoriasUsadas = new Set(
-    produtos
-      .map((produto) => produto.category)
-      .filter((category): category is number => category !== null)
-  )
-
-  async function handleRemoverProduto(id: number) {
-    try {
-      setErro('')
-
-      await removerProduto(id)
-
-      setProdutos((produtosAtuais) =>
-        produtosAtuais.filter((produto) => produto.id !== id)
-      )
-    } catch (error) {
-      console.error(error)
-      setErro('Não foi possível remover o produto.')
-    }
+  function fecharFormulario() {
+    setMostrarFormulario(false)
+    setNome('')
+    setCategoria('')
+    setPreco('')
+    setUnidade('')
   }
 
-  async function adicionarProduto() {
-    if (
-      nomeProduto.trim() === '' ||
-      categoria === '' ||
-      preco === '' ||
-      unidade.trim() === ''
-    ) {
-      setErro('Preencha todos os campos do produto.')
+
+  async function adicionarProduto(
+    event: React.FormEvent<HTMLFormElement>,
+  ) {
+    event.preventDefault()
+
+    if (nome.trim() === '') {
+      setErro('Informe o nome do produto.')
       return
     }
 
-    const precoNumerico = Number(preco)
-    const categoriaId = Number(categoria)
-
-    if (Number.isNaN(precoNumerico) || Number.isNaN(categoriaId)) {
-      setErro('Preço ou categoria inválidos.')
+    if (preco !== '' && !(Number(preco) >= 0)) {
+      setErro('Informe um preço válido ou deixe vazio.')
       return
     }
 
@@ -103,344 +98,301 @@ function Products() {
       setSalvando(true)
       setErro('')
 
-      const novoProduto = await criarProduto({
-        name: nomeProduto.trim(),
+      const novo = await criarProduto({
+        name: nome.trim(),
         description: '',
-        price: precoNumerico,
+        price: preco === '' ? null : Number(preco),
         unit: unidade.trim(),
-        category: categoriaId,
+        category: categoria === '' ? null : Number(categoria),
       })
 
-      setProdutos((produtosAtuais) => [
-        ...produtosAtuais,
-        novoProduto,
-      ])
-
-      setNomeProduto('')
-      setCategoria('')
-      setPreco('')
-      setUnidade('')
-      setMostrarFormulario(false)
-    } catch (error) {
-      console.error(error)
-      setErro('Não foi possível criar o produto.')
+      setProdutos((atuais) => [...(atuais ?? []), novo])
+      fecharFormulario()
+    } catch {
+      setErro('Não foi possível cadastrar o produto.')
     } finally {
       setSalvando(false)
     }
   }
 
-  function cancelarFormulario() {
-    setMostrarFormulario(false)
-    setNomeProduto('')
-    setCategoria('')
-    setPreco('')
-    setUnidade('')
-    setErro('')
-  }
 
-  function obterNomeCategoria(categoryId: number | null) {
-    if (categoryId === null) {
-      return 'Sem categoria'
+  async function remover(produto: Product) {
+    if (
+      !window.confirm(
+        `Remover "${produto.name}" do catálogo?`,
+      )
+    ) {
+      return
     }
 
-    const categoriaEncontrada = categoriasDisponiveis.find(
-      (categoria) => categoria.id === categoryId
-    )
+    try {
+      setErro('')
 
-    return categoriaEncontrada?.name ?? 'Categoria não encontrada'
+      await removerProduto(produto.id)
+
+      setProdutos((atuais) =>
+        (atuais ?? []).filter(
+          (item) => item.id !== produto.id,
+        ),
+      )
+    } catch {
+      // O backend protege produtos que já estão em alguma lista.
+      setErro(
+        `Não foi possível remover "${produto.name}". Se ele já está em alguma lista, ele precisa continuar no catálogo.`,
+      )
+    }
   }
 
+
+  function nomeDaCategoria(id: number | null) {
+    return (
+      categorias.find((item) => item.id === id)?.name ??
+      SEM_CATEGORIA
+    )
+  }
+
+
+  const termo = busca.trim().toLowerCase()
+
+  const filtrados = (produtos ?? [])
+    .filter((produto) =>
+      produto.name.toLowerCase().includes(termo),
+    )
+    .sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'))
+
+  // Agrupa por categoria, com "Sem categoria" no fim.
+  const grupos = new Map<string, Product[]>()
+
+  for (const produto of filtrados) {
+    const nomeGrupo = nomeDaCategoria(produto.category)
+    grupos.set(nomeGrupo, [
+      ...(grupos.get(nomeGrupo) ?? []),
+      produto,
+    ])
+  }
+
+  const gruposOrdenados = [...grupos.entries()].sort(
+    ([a], [b]) =>
+      a === SEM_CATEGORIA
+        ? 1
+        : b === SEM_CATEGORIA
+          ? -1
+          : a.localeCompare(b, 'pt-BR'),
+  )
+
+
   return (
-    <div className="mx-auto max-w-6xl">
-      {/* Cabeçalho */}
-      <div className="flex items-center justify-between">
+    <div className="mx-auto max-w-4xl">
+      <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">
+          <h1 className="font-display text-[28px] font-bold tracking-tight sm:text-[32px]">
             Produtos
           </h1>
 
-          <p className="mt-2 text-gray-500">
-            Consulte e gerencie seus produtos.
+          <p className="mt-1 text-muted">
+            O catálogo de produtos que você pode colocar nas
+            listas.
           </p>
         </div>
 
-        <button
-          type="button"
-          onClick={() => setMostrarFormulario(true)}
-          className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-3 font-semibold text-white transition hover:bg-blue-700"
-        >
-          <Plus size={18} />
-          Novo produto
-        </button>
+        {!mostrarFormulario && (
+          <button
+            type="button"
+            onClick={() => setMostrarFormulario(true)}
+            className={BOTAO_PRINCIPAL}
+          >
+            + Novo produto
+          </button>
+        )}
       </div>
 
-      {/* Erro */}
+
       {erro && (
-        <div className="mt-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <div
+          role="alert"
+          className="mt-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-red-700"
+        >
           {erro}
         </div>
       )}
 
-      {/* Formulário */}
+
       {mostrarFormulario && (
-        <div className="mt-6 rounded-2xl bg-white p-6 shadow">
-          <h2 className="text-xl font-bold text-gray-900">
+        <form
+          onSubmit={adicionarProduto}
+          className="mt-6 rounded-2xl border border-line bg-white p-5 sm:p-6"
+        >
+          <h2 className="font-display text-lg font-semibold">
             Novo produto
           </h2>
 
-          <p className="mt-1 text-sm text-gray-500">
-            Cadastre um novo produto.
-          </p>
-
-          <div className="mt-5 grid gap-4 md:grid-cols-2">
-            {/* Nome */}
-            <div>
-              <label className="text-sm font-medium text-gray-700">
-                Nome do produto
-              </label>
-
+          <div className="mt-4 grid gap-4 sm:grid-cols-2">
+            <label className={ROTULO}>
+              Nome
               <input
                 type="text"
-                value={nomeProduto}
-                onChange={(event) =>
-                  setNomeProduto(event.target.value)
-                }
-                placeholder="Ex: Arroz"
-                className="mt-2 w-full rounded-lg border border-gray-300 px-4 py-3 outline-none focus:border-blue-600"
+                value={nome}
+                onChange={(event) => setNome(event.target.value)}
+                placeholder="Ex: Arroz 5kg"
+                autoFocus
+                className={CAMPO}
               />
-            </div>
+            </label>
 
-            {/* Categoria */}
-            <div>
-              <label className="text-sm font-medium text-gray-700">
-                Categoria
-              </label>
-
+            <label className={ROTULO}>
+              Categoria{' '}
+              <span className="font-normal text-muted">opcional</span>
               <select
                 value={categoria}
                 onChange={(event) =>
                   setCategoria(event.target.value)
                 }
-                className="mt-2 w-full rounded-lg border border-gray-300 bg-white px-4 py-3 outline-none focus:border-blue-600"
+                className={CAMPO}
               >
-                <option value="">
-                  Selecione uma categoria
-                </option>
-
-                {categoriasDisponiveis.map((categoriaItem) => (
-                  <option
-                    key={categoriaItem.id}
-                    value={categoriaItem.id}
-                  >
-                    {categoriaItem.name}
+                <option value="">Sem categoria</option>
+                {categorias.map((item) => (
+                  <option key={item.id} value={item.id}>
+                    {item.name}
                   </option>
                 ))}
               </select>
-            </div>
+            </label>
 
-            {/* Preço */}
-            <div>
-              <label className="text-sm font-medium text-gray-700">
-                Preço
-              </label>
-
+            <label className={ROTULO}>
+              Preço de referência (R$){' '}
+              <span className="font-normal text-muted">opcional</span>
               <input
                 type="number"
                 min="0"
                 step="0.01"
+                inputMode="decimal"
                 value={preco}
-                onChange={(event) =>
-                  setPreco(event.target.value)
-                }
-                placeholder="Ex: 12.90"
-                className="mt-2 w-full rounded-lg border border-gray-300 px-4 py-3 outline-none focus:border-blue-600"
+                onChange={(event) => setPreco(event.target.value)}
+                placeholder="Ex: 24.90"
+                className={CAMPO}
               />
-            </div>
+            </label>
 
-            {/* Unidade */}
-            <div>
-              <label className="text-sm font-medium text-gray-700">
-                Unidade
-              </label>
-
+            <label className={ROTULO}>
+              Unidade{' '}
+              <span className="font-normal text-muted">opcional</span>
               <input
                 type="text"
                 value={unidade}
                 onChange={(event) =>
                   setUnidade(event.target.value)
                 }
-                placeholder="Ex: 5 kg"
-                className="mt-2 w-full rounded-lg border border-gray-300 px-4 py-3 outline-none focus:border-blue-600"
+                placeholder="Ex: kg, pacote, un."
+                className={CAMPO}
               />
-            </div>
+            </label>
           </div>
 
-          <div className="mt-6 flex gap-3">
+          <div className="mt-5 flex gap-3">
+            <button
+              type="submit"
+              disabled={salvando}
+              className={BOTAO_PRINCIPAL}
+            >
+              {salvando ? 'Salvando...' : 'Cadastrar'}
+            </button>
+
             <button
               type="button"
-              onClick={cancelarFormulario}
-              disabled={salvando}
-              className="rounded-lg border border-gray-300 px-4 py-2 font-medium hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+              onClick={fecharFormulario}
+              className={BOTAO_SECUNDARIO}
             >
               Cancelar
             </button>
-
-            <button
-              type="button"
-              onClick={adicionarProduto}
-              disabled={salvando}
-              className="rounded-lg bg-blue-600 px-4 py-2 font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {salvando ? 'Salvando...' : 'Adicionar produto'}
-            </button>
           </div>
-        </div>
+        </form>
       )}
 
-      {/* Pesquisa */}
-      <div className="mt-6 rounded-2xl bg-white p-5 shadow">
-        <div className="relative">
-          <Search
-            size={20}
-            className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
-          />
 
-          <input
-            type="text"
-            value={busca}
-            onChange={(event) => setBusca(event.target.value)}
-            placeholder="Pesquisar produto..."
-            className="w-full rounded-lg border border-gray-300 py-3 pl-11 pr-4 outline-none focus:border-blue-600"
-          />
+      <label className="relative mt-6 block">
+        <span className="sr-only">Buscar produto</span>
+        <Search
+          size={18}
+          aria-hidden="true"
+          className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
+        />
+        <input
+          type="search"
+          value={busca}
+          onChange={(event) => setBusca(event.target.value)}
+          placeholder="Buscar produto"
+          className="h-12 w-full rounded-xl border border-line bg-white pl-11 pr-4 text-[15px] outline-none transition focus:border-brand-600 focus:ring-2 focus:ring-brand-100"
+        />
+      </label>
+
+
+      {produtos === null ? (
+        <div className="mt-5 rounded-2xl border border-line bg-white p-8 text-center text-muted">
+          Carregando produtos...
         </div>
-      </div>
-
-      {/* Resumo */}
-      <div className="mt-6 grid gap-4 md:grid-cols-3">
-        <div className="rounded-2xl bg-white p-5 shadow">
-          <div className="flex items-center gap-3">
-            <div className="rounded-lg bg-blue-50 p-2 text-blue-600">
-              <Package size={20} />
-            </div>
-
-            <div>
-              <p className="text-sm text-gray-500">
-                Produtos cadastrados
-              </p>
-
-              <p className="text-2xl font-bold text-gray-900">
-                {produtos.length}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="rounded-2xl bg-white p-5 shadow">
-          <p className="text-sm text-gray-500">
-            Produtos encontrados
+      ) : filtrados.length === 0 ? (
+        <div className="mt-5 rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center">
+          <p className="font-display text-lg font-semibold">
+            {termo
+              ? `Nenhum produto com "${busca.trim()}"`
+              : 'Nenhum produto cadastrado'}
           </p>
-
-          <p className="mt-1 text-2xl font-bold text-gray-900">
-            {produtosFiltrados.length}
+          <p className="mt-1 text-sm text-muted">
+            Cadastre um produto para usar nas suas listas.
           </p>
         </div>
+      ) : (
+        <div className="mt-6 space-y-6">
+          {gruposOrdenados.map(([nomeGrupo, itens]) => (
+            <section key={nomeGrupo} aria-label={nomeGrupo}>
+              <h2 className="mb-2 px-1 text-xs font-semibold uppercase tracking-wider text-muted">
+                {nomeGrupo} · {itens.length}
+              </h2>
 
-        <div className="rounded-2xl bg-white p-5 shadow">
-          <p className="text-sm text-gray-500">
-            Categorias
-          </p>
-
-          <p className="mt-1 text-2xl font-bold text-gray-900">
-            {categoriasUsadas.size}
-          </p>
-        </div>
-      </div>
-
-      {/* Lista de produtos */}
-      <div className="mt-8">
-        <h2 className="text-2xl font-bold text-gray-900">
-          Seus produtos
-        </h2>
-
-        {carregando ? (
-          <div className="mt-4 rounded-2xl bg-white p-8 text-center shadow">
-            <p className="text-gray-500">
-              Carregando produtos...
-            </p>
-          </div>
-        ) : produtosFiltrados.length === 0 ? (
-          <div className="mt-4 rounded-2xl bg-white p-8 text-center shadow">
-            <Package
-              size={40}
-              className="mx-auto text-gray-400"
-            />
-
-            <h3 className="mt-4 text-lg font-semibold text-gray-900">
-              Nenhum produto encontrado
-            </h3>
-
-            <p className="mt-1 text-gray-500">
-              Tente pesquisar por outro nome ou cadastre um novo produto.
-            </p>
-          </div>
-        ) : (
-          <div className="mt-4 grid gap-4 md:grid-cols-2">
-            {produtosFiltrados.map((produto) => (
-              <div
-                key={produto.id}
-                className="rounded-2xl bg-white p-5 shadow"
-              >
-                <div className="flex items-start justify-between">
-                  <div>
-                    <h3 className="text-lg font-bold text-gray-900">
-                      {produto.name}
-                    </h3>
-
-                    <p className="mt-1 text-sm text-gray-500">
-                      {obterNomeCategoria(produto.category)}
-                    </p>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() =>
-                      handleRemoverProduto(produto.id)
-                    }
-                    className="rounded-lg p-2 text-red-500 transition hover:bg-red-50"
-                    title="Remover produto"
+              <ul className="divide-y divide-slate-100 overflow-hidden rounded-2xl border border-line bg-white">
+                {itens.map((produto) => (
+                  <li
+                    key={produto.id}
+                    className="flex items-center gap-3 py-2 pl-4 pr-2 sm:pl-5"
                   >
-                    <Trash2 size={18} />
-                  </button>
-                </div>
+                    <div className="min-w-0 flex-1 py-1">
+                      <p className="truncate font-semibold">
+                        {produto.name}
+                      </p>
+                      {produto.unit && (
+                        <p className="text-sm text-muted">
+                          {produto.unit}
+                        </p>
+                      )}
+                    </div>
 
-                <div className="mt-5 flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-gray-500">
-                      Unidade
-                    </p>
+                    {produto.price !== null && (
+                      <p
+                        className="shrink-0 text-sm tabular-nums text-muted"
+                        title="Preço de referência"
+                      >
+                        {formatarMoeda(Number(produto.price))}
+                      </p>
+                    )}
 
-                    <p className="font-medium text-gray-900">
-                      {produto.unit}
-                    </p>
-                  </div>
-
-                  <div className="text-right">
-                    <p className="text-sm text-gray-500">
-                      Preço
-                    </p>
-
-                    <p className="text-xl font-bold text-blue-600">
-                      R$ {Number(produto.price).toFixed(2)}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+                    <button
+                      type="button"
+                      onClick={() => remover(produto)}
+                      aria-label={`Remover ${produto.name}`}
+                      className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-slate-400 transition hover:bg-red-50 hover:text-red-700"
+                    >
+                      <Trash2 size={18} aria-hidden="true" />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
+
 
 export default Products

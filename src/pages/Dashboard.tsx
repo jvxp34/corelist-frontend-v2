@@ -1,722 +1,598 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 
+import { useUsuario } from '../hooks/useUsuario'
+import { nomeDeExibicao } from '../services/auth'
 import {
-  ArrowRight,
-  CheckCircle2,
-  CircleDollarSign,
-  Lightbulb,
-  Package,
-  Plus,
-  ShoppingCart,
-  Sparkles,
-  TrendingDown,
-  TrendingUp,
-} from 'lucide-react'
-
-import {
-  obterInsights,
+  listarListas,
+  obterHistorico,
+  obterPromocoes,
   obterResumoListas,
-  type ListInsight,
-  type ListSummary,
+  type List,
+  type ListSummaryCategory,
+  type Promotion,
 } from '../services/lists'
+import {
+  formatarData,
+  formatarMoeda,
+  situacaoDoOrcamento,
+  textoDoSaldo,
+} from '../utils/formatar'
+
+
+function chaveDoMes(data: Date) {
+  return `${data.getFullYear()}-${data.getMonth()}`
+}
+
+
+function nomeDoMes(data: Date) {
+  return data.toLocaleDateString('pt-BR', {
+    month: 'long',
+  })
+}
+
+
+function maiuscula(texto: string) {
+  return texto.charAt(0).toUpperCase() + texto.slice(1)
+}
+
+
+const CARD =
+  'rounded-2xl border border-line bg-white p-6 sm:p-7'
+
+const BOTAO_PRINCIPAL =
+  'inline-flex h-11 items-center rounded-xl bg-brand-600 px-5 text-[15px] font-semibold text-white transition hover:bg-brand-700'
+
+const LINK =
+  'text-sm font-semibold text-brand-600 hover:text-brand-800'
+
+
+interface DadosInicio {
+  listasAtivas: List[]
+  historico: List[]
+  categorias: ListSummaryCategory[]
+  promocoes: Promotion[]
+}
+
 
 function Dashboard() {
-  const navigate = useNavigate()
+  const usuario = useUsuario()
+  const nome = nomeDeExibicao(usuario)
 
-  const [resumo, setResumo] =
-    useState<ListSummary | null>(null)
-
-  const [insights, setInsights] =
-    useState<ListInsight[]>([])
-
-  const [carregando, setCarregando] =
-    useState(true)
+  const [dados, setDados] =
+    useState<DadosInicio | null>(null)
 
   const [erro, setErro] = useState('')
 
+
   useEffect(() => {
-    async function carregarDashboard() {
-      try {
-        setCarregando(true)
-        setErro('')
+    let cancelado = false
 
-        const [resumoData, insightsData] =
-          await Promise.all([
-            obterResumoListas(),
-            obterInsights(),
-          ])
-
-        setResumo(resumoData)
-        setInsights(insightsData)
-      } catch (error) {
-        console.error(error)
-
-        setErro(
-          'Não foi possível carregar os dados do Dashboard.',
-        )
-      } finally {
-        setCarregando(false)
+    // Cada bloco funciona sozinho: se uma chamada falhar, o resto aparece.
+    Promise.allSettled([
+      listarListas(),
+      obterHistorico(),
+      obterResumoListas(),
+      obterPromocoes(),
+    ]).then(([listas, historico, resumo, promocoes]) => {
+      if (cancelado) {
+        return
       }
-    }
 
-    carregarDashboard()
+      if (
+        listas.status === 'rejected' &&
+        historico.status === 'rejected'
+      ) {
+        setErro(
+          'Não foi possível carregar seus dados. Tente entrar de novo.',
+        )
+      }
+
+      setDados({
+        listasAtivas:
+          listas.status === 'fulfilled'
+            ? listas.value
+                .filter((lista) => !lista.is_completed)
+                .sort((a, b) =>
+                  b.updated_at.localeCompare(a.updated_at),
+                )
+            : [],
+        historico:
+          historico.status === 'fulfilled'
+            ? [...historico.value].sort((a, b) =>
+                (b.completed_at ?? '').localeCompare(
+                  a.completed_at ?? '',
+                ),
+              )
+            : [],
+        categorias:
+          resumo.status === 'fulfilled'
+            ? resumo.value.categories
+            : [],
+        promocoes:
+          promocoes.status === 'fulfilled'
+            ? promocoes.value
+            : [],
+      })
+    })
+
+    return () => {
+      cancelado = true
+    }
   }, [])
 
-  const totalGasto = Number(
-    resumo?.total ?? 0,
+
+  const hoje = new Date()
+
+  const dataDeHoje = maiuscula(
+    hoje.toLocaleDateString('pt-BR', {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+    }),
   )
 
-  const listasConcluidas =
-    resumo?.lists_count ?? 0
-
-  const mediaCompra = Number(
-    resumo?.average_purchase ?? 0,
-  )
-
-  const categorias =
-    resumo?.categories.length ?? 0
-
-  const variacaoPeriodo = Number(
-    resumo?.period_comparison
-      .percentage_change ?? 0,
-  )
-
-  const periodoAtual =
-    resumo?.period_comparison.current_month || ''
-
-  const periodoAnterior =
-    resumo?.period_comparison.previous_month || ''
-
-  const topProdutos =
-    resumo?.top_products.slice(0, 4) ?? []
-
-  function obterEstiloInsight(
-    severity: ListInsight['severity'],
-  ) {
-    if (severity === 'critical') {
-      return {
-        container:
-          'border-red-100 bg-red-50',
-        badge:
-          'bg-white text-red-600',
-        icon:
-          'text-red-600',
-        title:
-          'text-red-900',
-        message:
-          'text-red-700',
-      }
-    }
-
-    if (severity === 'warning') {
-      return {
-        container:
-          'border-amber-100 bg-amber-50',
-        badge:
-          'bg-white text-amber-600',
-        icon:
-          'text-amber-600',
-        title:
-          'text-amber-900',
-        message:
-          'text-amber-700',
-      }
-    }
-
-    return {
-      container:
-        'border-blue-100 bg-blue-50',
-      badge:
-        'bg-white text-blue-600',
-      icon:
-        'text-blue-600',
-      title:
-        'text-blue-900',
-      message:
-        'text-blue-700',
-    }
-  }
 
   return (
-    <div className="min-h-screen bg-slate-50 p-4 sm:p-6">
-      <div className="mx-auto max-w-6xl">
-
-        {/* HERO */}
-        <section className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-blue-600 via-blue-600 to-cyan-500 p-6 text-white shadow-lg sm:p-8">
-          <div className="absolute -right-16 -top-16 h-48 w-48 rounded-full bg-white/10" />
-
-          <div className="absolute -bottom-24 right-24 h-56 w-56 rounded-full bg-cyan-300/10" />
-
-          <div className="relative z-10 max-w-3xl">
-            <div className="inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1.5 text-sm font-medium backdrop-blur-sm">
-              <Sparkles size={15} />
-
-              Seu resumo de compras
-            </div>
-
-            <h1 className="mt-5 text-3xl font-bold tracking-tight sm:text-4xl">
-              Olá, João 👋
-            </h1>
-
-            <p className="mt-3 max-w-xl text-sm leading-6 text-blue-50 sm:text-base">
-              Organize suas compras, acompanhe seus gastos e
-              encontre oportunidades para economizar.
-            </p>
-
-            <div className="mt-6 flex flex-wrap gap-3">
-              <button
-                type="button"
-                onClick={() => navigate('/listas')}
-                className="flex items-center gap-2 rounded-xl bg-white px-4 py-3 font-semibold text-blue-600 shadow-sm transition hover:-translate-y-0.5 hover:bg-blue-50"
-              >
-                <Plus size={18} />
-
-                Nova lista
-              </button>
-
-              <button
-                type="button"
-                onClick={() => navigate('/historico')}
-                className="flex items-center gap-2 rounded-xl bg-white/10 px-4 py-3 font-semibold text-white backdrop-blur-sm transition hover:bg-white/20"
-              >
-                <ShoppingCart size={18} />
-
-                Minhas compras
-              </button>
-            </div>
-          </div>
-
-          <div className="relative z-10 mt-8 grid max-w-2xl grid-cols-2 gap-3 sm:absolute sm:bottom-8 sm:right-8 sm:mt-0 sm:w-80">
-            <div className="rounded-2xl bg-white/10 p-4 backdrop-blur-md">
-              <p className="text-xs text-blue-100">
-                Média por compra
-              </p>
-
-              <p className="mt-1 text-2xl font-bold">
-                R$ {mediaCompra.toFixed(2)}
-              </p>
-
-              <div className="mt-2 flex items-center gap-1 text-xs text-blue-100">
-                <CircleDollarSign size={13} />
-
-                média calculada pelo histórico
-              </div>
-            </div>
-
-            <div className="rounded-2xl bg-white/10 p-4 backdrop-blur-md">
-              <p className="text-xs text-blue-100">
-                Listas concluídas
-              </p>
-
-              <p className="mt-1 text-2xl font-bold">
-                {listasConcluidas}
-              </p>
-
-              <div className="mt-2 text-xs text-blue-100">
-                compras registradas
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* STATUS */}
-        {erro && (
-          <div className="mt-6 rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700">
-            {erro}
-          </div>
-        )}
-
-        {carregando && (
-          <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-5 text-sm text-slate-500 shadow-sm">
-            Atualizando seus dados...
-          </div>
-        )}
-
-        {/* INDICADORES */}
-        <section className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-
-          <div className="group rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-1 hover:shadow-md">
-            <div className="flex items-center justify-between">
-              <div className="rounded-xl bg-blue-50 p-3 text-blue-600 transition group-hover:bg-blue-600 group-hover:text-white">
-                <ShoppingCart size={21} />
-              </div>
-
-              <CheckCircle2
-                size={18}
-                className="text-emerald-500"
-              />
-            </div>
-
-            <p className="mt-5 text-sm text-slate-500">
-              Listas concluídas
-            </p>
-
-            <p className="mt-1 text-3xl font-bold text-slate-900">
-              {listasConcluidas}
-            </p>
-          </div>
-
-          <div className="group rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-1 hover:shadow-md">
-            <div className="flex items-center justify-between">
-              <div className="rounded-xl bg-emerald-50 p-3 text-emerald-600 transition group-hover:bg-emerald-600 group-hover:text-white">
-                <CircleDollarSign size={21} />
-              </div>
-
-              <TrendingDown
-                size={18}
-                className="text-emerald-500"
-              />
-            </div>
-
-            <p className="mt-5 text-sm text-slate-500">
-              Total em compras
-            </p>
-
-            <p className="mt-1 text-3xl font-bold text-slate-900">
-              R$ {totalGasto.toFixed(2)}
-            </p>
-          </div>
-
-          <div className="group rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-1 hover:shadow-md">
-            <div className="flex items-center justify-between">
-              <div className="rounded-xl bg-violet-50 p-3 text-violet-600 transition group-hover:bg-violet-600 group-hover:text-white">
-                <Package size={21} />
-              </div>
-
-              <span className="text-xs font-medium text-slate-400">
-                histórico
-              </span>
-            </div>
-
-            <p className="mt-5 text-sm text-slate-500">
-              Média por compra
-            </p>
-
-            <p className="mt-1 text-3xl font-bold text-slate-900">
-              R$ {mediaCompra.toFixed(2)}
-            </p>
-          </div>
-
-          <div className="group rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-1 hover:shadow-md">
-            <div className="flex items-center justify-between">
-              <div className="rounded-xl bg-orange-50 p-3 text-orange-600 transition group-hover:bg-orange-600 group-hover:text-white">
-                <CheckCircle2 size={21} />
-              </div>
-
-              <span className="rounded-full bg-orange-50 px-2.5 py-1 text-xs font-semibold text-orange-600">
-                {categorias}
-              </span>
-            </div>
-
-            <p className="mt-5 text-sm text-slate-500">
-              Categorias utilizadas
-            </p>
-
-            <p className="mt-1 text-3xl font-bold text-slate-900">
-              {categorias}
-            </p>
-          </div>
-        </section>
-
-        {/* COMPARAÇÃO */}
-        <section className="mt-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-7">
-          <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
-
-            <div className="flex items-start gap-4">
-              <div className="rounded-2xl bg-blue-50 p-4 text-blue-600">
-                <TrendingDown size={25} />
-              </div>
-
-              <div>
-                <p className="text-sm font-medium text-blue-600">
-                  Comparação de gastos
-                </p>
-
-                <h2 className="mt-1 text-2xl font-bold text-slate-900">
-                  Evolução das suas compras
-                </h2>
-
-                <p className="mt-1 text-sm text-slate-500">
-                  {periodoAnterior && periodoAtual
-                    ? `${periodoAnterior} → ${periodoAtual}`
-                    : 'Ainda não há períodos suficientes para comparação.'}
-                </p>
-              </div>
-            </div>
-
-            <div className="min-w-0 lg:w-96">
-              <div className="flex items-center justify-between text-sm">
-                <span className="font-medium text-slate-600">
-                  Variação
-                </span>
-
-                <span
-                  className={`font-bold ${
-                    variacaoPeriodo <= 0
-                      ? 'text-emerald-600'
-                      : 'text-red-500'
-                  }`}
-                >
-                  {variacaoPeriodo >= 0 ? '+' : ''}
-                  {variacaoPeriodo.toFixed(1)}%
-                </span>
-              </div>
-
-              <div className="mt-3 rounded-2xl bg-slate-50 p-4">
-                <div className="flex items-center gap-3">
-                  {variacaoPeriodo <= 0 ? (
-                    <TrendingDown
-                      size={20}
-                      className="text-emerald-500"
-                    />
-                  ) : (
-                    <TrendingUp
-                      size={20}
-                      className="text-red-500"
-                    />
-                  )}
-
-                  <div>
-                    <p className="text-sm font-semibold text-slate-800">
-                      {variacaoPeriodo <= 0
-                        ? 'Gastos menores no período'
-                        : 'Gastos maiores no período'}
-                    </p>
-
-                    <p className="mt-1 text-xs text-slate-500">
-                      Comparação calculada pelo histórico.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* PRODUTOS MAIS COMPRADOS */}
-        <section className="mt-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-xl font-bold text-slate-900">
-                Produtos mais comprados
-              </h2>
-
-              <p className="mt-1 text-sm text-slate-500">
-                Veja quais produtos aparecem com mais frequência
-                no seu histórico.
-              </p>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => navigate('/produtos')}
-              className="hidden items-center gap-1 text-sm font-semibold text-blue-600 hover:text-blue-700 sm:flex"
-            >
-              Ver produtos
-
-              <ArrowRight size={16} />
-            </button>
-          </div>
-
-          {topProdutos.length === 0 ? (
-            <div className="mt-5 rounded-2xl bg-slate-50 p-8 text-center">
-              <Package
-                size={32}
-                className="mx-auto text-slate-400"
-              />
-
-              <p className="mt-3 text-sm text-slate-500">
-                Ainda não existem produtos registrados no
-                histórico.
-              </p>
-            </div>
-          ) : (
-            <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              {topProdutos.map((produto, index) => (
-                <div
-                  key={produto.product}
-                  className="group rounded-2xl border border-slate-200 p-4 transition hover:-translate-y-1 hover:border-blue-200 hover:shadow-sm"
-                >
-                  <div className="flex items-start justify-between">
-                    <div className="rounded-lg bg-slate-100 p-2 text-slate-600 transition group-hover:bg-blue-50 group-hover:text-blue-600">
-                      <Package size={18} />
-                    </div>
-
-                    <span className="rounded-full bg-blue-50 px-2 py-1 text-xs font-semibold text-blue-600">
-                      #{index + 1}
-                    </span>
-                  </div>
-
-                  <h3 className="mt-4 font-semibold text-slate-900">
-                    {produto.product}
-                  </h3>
-
-                  <p className="mt-1 text-xs text-slate-500">
-                    Produto mais comprado
-                  </p>
-
-                  <p className="mt-4 text-xl font-bold text-slate-900">
-                    {Number(produto.quantity).toLocaleString(
-                      'pt-BR',
-                    )}
-                  </p>
-
-                  <p className="text-xs text-slate-500">
-                    unidades compradas
-                  </p>
-                </div>
-              ))}
-            </div>
-          )}
-        </section>
-
-        {/* RESUMO */}
-        <div className="mt-6 grid gap-6 lg:grid-cols-3">
-
-          <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm lg:col-span-2">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-xl font-bold text-slate-900">
-                  Resumo das listas
-                </h2>
-
-                <p className="mt-1 text-sm text-slate-500">
-                  Acompanhe suas compras registradas.
-                </p>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => navigate('/listas')}
-                className="flex items-center gap-1 text-sm font-semibold text-blue-600 hover:text-blue-700"
-              >
-                Ver todas
-
-                <ArrowRight size={16} />
-              </button>
-            </div>
-
-            <div className="mt-5 grid gap-4 sm:grid-cols-2">
-              <div className="rounded-2xl bg-blue-50 p-5">
-                <p className="text-sm text-blue-700">
-                  Total gasto
-                </p>
-
-                <p className="mt-2 text-2xl font-bold text-blue-900">
-                  R$ {totalGasto.toFixed(2)}
-                </p>
-              </div>
-
-              <div className="rounded-2xl bg-emerald-50 p-5">
-                <p className="text-sm text-emerald-700">
-                  Média por compra
-                </p>
-
-                <p className="mt-2 text-2xl font-bold text-emerald-900">
-                  R$ {mediaCompra.toFixed(2)}
-                </p>
-              </div>
-
-              <div className="rounded-2xl bg-violet-50 p-5">
-                <p className="text-sm text-violet-700">
-                  Listas concluídas
-                </p>
-
-                <p className="mt-2 text-2xl font-bold text-violet-900">
-                  {listasConcluidas}
-                </p>
-              </div>
-
-              <div className="rounded-2xl bg-orange-50 p-5">
-                <p className="text-sm text-orange-700">
-                  Categorias
-                </p>
-
-                <p className="mt-2 text-2xl font-bold text-orange-900">
-                  {categorias}
-                </p>
-              </div>
-            </div>
-          </section>
-
-          {/* VARIAÇÃO */}
-          <section className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-emerald-500 to-teal-600 p-6 text-white shadow-sm">
-            <div className="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-white/10" />
-
-            <div className="relative">
-              <div className="flex items-center justify-between">
-                <div className="rounded-xl bg-white/15 p-3 backdrop-blur-sm">
-                  {variacaoPeriodo <= 0 ? (
-                    <TrendingDown size={22} />
-                  ) : (
-                    <TrendingUp size={22} />
-                  )}
-                </div>
-
-                <span className="rounded-full bg-white/15 px-3 py-1 text-xs font-semibold">
-                  Período
-                </span>
-              </div>
-
-              <p className="mt-8 text-sm text-emerald-50">
-                Variação dos gastos
-              </p>
-
-              <p className="mt-1 text-4xl font-bold">
-                {variacaoPeriodo >= 0 ? '+' : ''}
-                {variacaoPeriodo.toFixed(1)}%
-              </p>
-
-              <div className="mt-5 rounded-2xl bg-white/10 p-4 backdrop-blur-sm">
-                <div className="flex items-center gap-2">
-                  {variacaoPeriodo <= 0 ? (
-                    <TrendingDown size={17} />
-                  ) : (
-                    <TrendingUp size={17} />
-                  )}
-
-                  <span className="font-semibold">
-                    {variacaoPeriodo <= 0
-                      ? 'Redução nos gastos'
-                      : 'Aumento nos gastos'}
-                  </span>
-                </div>
-
-                <p className="mt-2 text-sm leading-5 text-emerald-50">
-                  {periodoAnterior && periodoAtual
-                    ? `Comparação entre ${periodoAnterior} e ${periodoAtual}.`
-                    : 'O histórico ainda não possui dados suficientes para comparação.'}
-                </p>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => navigate('/relatorios')}
-                className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-white px-4 py-3 font-semibold text-emerald-600 transition hover:bg-emerald-50"
-              >
-                Ver relatório
-
-                <ArrowRight size={17} />
-              </button>
-            </div>
-          </section>
+    <div className="mx-auto max-w-5xl space-y-7">
+
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <p className="text-sm text-muted">
+            {dataDeHoje}
+          </p>
+
+          <h1 className="mt-1.5 font-display text-[28px] font-bold leading-tight tracking-tight sm:text-[32px]">
+            Olá{nome ? `, ${nome}` : ''}! O que vamos comprar hoje?
+          </h1>
         </div>
 
-        {/* OPORTUNIDADES */}
-        <section className="mt-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-          <div className="flex items-center gap-3">
-            <div className="rounded-xl bg-amber-50 p-3 text-amber-600">
-              <Lightbulb size={22} />
-            </div>
-
-            <div>
-              <h2 className="text-xl font-bold text-slate-900">
-                Oportunidades para você
-              </h2>
-
-              <p className="mt-1 text-sm text-slate-500">
-                Insights gerados com base nos seus dados.
-              </p>
-            </div>
-          </div>
-
-          {insights.length === 0 ? (
-            <div className="mt-5 rounded-2xl bg-slate-50 p-8 text-center">
-              <Lightbulb
-                size={32}
-                className="mx-auto text-slate-400"
-              />
-
-              <p className="mt-3 font-medium text-slate-700">
-                Ainda não há insights disponíveis.
-              </p>
-
-              <p className="mt-1 text-sm text-slate-500">
-                Continue registrando suas compras para que o
-                CoreList possa analisar seu histórico.
-              </p>
-            </div>
-          ) : (
-            <div className="mt-5 grid gap-4 md:grid-cols-3">
-              {insights.map((insight, index) => {
-                const estilo =
-                  obterEstiloInsight(
-                    insight.severity,
-                  )
-
-                return (
-                  <div
-                    key={`${insight.type}-${index}`}
-                    className={`rounded-2xl border p-5 ${estilo.container}`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <span
-                        className={`rounded-full px-3 py-1 text-xs font-bold ${estilo.badge}`}
-                      >
-                        {insight.type}
-                      </span>
-
-                      <Lightbulb
-                        size={19}
-                        className={estilo.icon}
-                      />
-                    </div>
-
-                    <h3
-                      className={`mt-4 font-bold ${estilo.title}`}
-                    >
-                      {insight.title}
-                    </h3>
-
-                    <p
-                      className={`mt-2 text-sm leading-5 ${estilo.message}`}
-                    >
-                      {insight.message}
-                    </p>
-                  </div>
-                )
-              })}
-            </div>
-          )}
-        </section>
-
-        {/* CTA */}
-        <section className="mt-6 overflow-hidden rounded-3xl bg-slate-900 p-6 text-white shadow-sm sm:p-8">
-          <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
-            <div className="max-w-xl">
-              <div className="flex items-center gap-2 text-blue-400">
-                <Sparkles size={18} />
-
-                <span className="text-sm font-semibold">
-                  CoreList
-                </span>
-              </div>
-
-              <h2 className="mt-3 text-2xl font-bold">
-                Pronto para organizar sua próxima compra?
-              </h2>
-
-              <p className="mt-2 text-sm leading-6 text-slate-400">
-                Crie uma lista, adicione seus produtos e tenha
-                tudo organizado antes de sair de casa.
-              </p>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => navigate('/listas')}
-              className="flex w-fit items-center gap-2 rounded-xl bg-blue-600 px-5 py-3 font-semibold text-white transition hover:-translate-y-0.5 hover:bg-blue-500"
-            >
-              <Plus size={18} />
-
-              Criar nova lista
-            </button>
-          </div>
-        </section>
+        <Link to="/listas?nova=1" className={BOTAO_PRINCIPAL}>
+          + Nova lista
+        </Link>
       </div>
+
+
+      {erro && (
+        <div
+          role="alert"
+          className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-red-700"
+        >
+          {erro}
+        </div>
+      )}
+
+
+      {!dados ? (
+        <div className={`${CARD} text-center text-muted`}>
+          Carregando seu resumo...
+        </div>
+      ) : (
+        <div className="grid gap-5 lg:grid-cols-5">
+          <CompraDeHoje lista={dados.listasAtivas[0]} />
+
+          <ResumoDoMes
+            historico={dados.historico}
+            hoje={hoje}
+          />
+
+          <Categorias categorias={dados.categorias} />
+
+          <MenorPreco promocoes={dados.promocoes} />
+
+          <UltimasCompras historico={dados.historico} />
+        </div>
+      )}
     </div>
   )
 }
+
+
+function CompraDeHoje({ lista }: { lista?: List }) {
+  if (!lista) {
+    return (
+      <section
+        aria-label="Compra de hoje"
+        className={`${CARD} flex flex-col items-start gap-4 lg:col-span-3`}
+      >
+        <div>
+          <p className="text-[13px] font-semibold text-brand-600">
+            Compra de hoje
+          </p>
+          <h2 className="mt-1 font-display text-2xl font-semibold">
+            Nenhuma compra em andamento
+          </h2>
+          <p className="mt-2 text-muted">
+            Crie uma lista com o que você precisa comprar e
+            defina um orçamento para acompanhar os gastos.
+          </p>
+        </div>
+
+        <Link to="/listas?nova=1" className={BOTAO_PRINCIPAL}>
+          Criar lista
+        </Link>
+      </section>
+    )
+  }
+
+  const itens = lista.items ?? []
+  const total = Number(lista.total ?? 0)
+  const situacao = situacaoDoOrcamento(total, lista.budget)
+  const temOrcamento = situacao.nivel !== 'sem'
+  const faltam = itens.filter(
+    (item) => !item.is_completed,
+  ).length
+
+  return (
+    <section
+      aria-label="Compra de hoje"
+      className={`${CARD} flex flex-col gap-5 lg:col-span-3`}
+    >
+      <div>
+        <p className="text-[13px] font-semibold text-brand-600">
+          Compra de hoje
+        </p>
+        <h2 className="mt-1 font-display text-2xl font-semibold">
+          {lista.name}
+        </h2>
+      </div>
+
+      <div>
+        <div className="flex items-baseline justify-between gap-3">
+          <p className="text-3xl font-semibold tabular-nums tracking-tight">
+            {formatarMoeda(total)}
+          </p>
+
+          {temOrcamento && (
+            <p className="text-sm text-muted">
+              de {formatarMoeda(situacao.orcamento)}
+            </p>
+          )}
+        </div>
+
+        {temOrcamento && (
+          <div className="mt-2.5 h-2 overflow-hidden rounded-full bg-slate-100">
+            <div
+              className={`h-full rounded-full ${situacao.corBarra}`}
+              style={{
+                width: `${Math.min(situacao.usado * 100, 100)}%`,
+              }}
+            />
+          </div>
+        )}
+
+        <p className="mt-2.5 text-sm text-muted">
+          {temOrcamento && (
+            <>
+              <span className={`font-semibold ${situacao.corTexto}`}>
+                {textoDoSaldo(situacao)}
+              </span>
+              {' · '}
+            </>
+          )}
+          {itens.length === 0
+            ? 'nenhum produto ainda'
+            : faltam === 0
+              ? 'todos os produtos no carrinho'
+              : `faltam ${faltam} de ${itens.length} produtos`}
+        </p>
+      </div>
+
+      <Link
+        to={`/listas/${lista.id}`}
+        className={`${BOTAO_PRINCIPAL} self-start`}
+      >
+        Continuar compra
+      </Link>
+    </section>
+  )
+}
+
+
+function ResumoDoMes({
+  historico,
+  hoje,
+}: {
+  historico: List[]
+  hoje: Date
+}) {
+  const mesAtual = chaveDoMes(hoje)
+  const dataMesAnterior = new Date(
+    hoje.getFullYear(),
+    hoje.getMonth() - 1,
+    1,
+  )
+  const mesAnterior = chaveDoMes(dataMesAnterior)
+
+  const doMes = (chave: string) =>
+    historico.filter(
+      (lista) =>
+        lista.completed_at &&
+        chaveDoMes(new Date(lista.completed_at)) === chave,
+    )
+
+  const somar = (listas: List[]) =>
+    listas.reduce(
+      (total, lista) => total + Number(lista.total ?? 0),
+      0,
+    )
+
+  const comprasDoMes = doMes(mesAtual)
+  const gastoDoMes = somar(comprasDoMes)
+  const gastoAnterior = somar(doMes(mesAnterior))
+
+  const comOrcamento = comprasDoMes.filter(
+    (lista) => Number(lista.budget ?? 0) > 0,
+  )
+  const dentroDoOrcamento = comOrcamento.filter(
+    (lista) =>
+      Number(lista.total ?? 0) <= Number(lista.budget),
+  ).length
+
+  const variacao =
+    gastoAnterior > 0
+      ? Math.round(
+          ((gastoDoMes - gastoAnterior) / gastoAnterior) * 100,
+        )
+      : null
+
+  return (
+    <section
+      aria-label={`Resumo de ${nomeDoMes(hoje)}`}
+      className={`${CARD} flex flex-col gap-2 lg:col-span-2`}
+    >
+      <p className="text-[13px] font-semibold text-muted">
+        {maiuscula(nomeDoMes(hoje))} até agora
+      </p>
+
+      <p className="text-3xl font-semibold tabular-nums tracking-tight">
+        {formatarMoeda(gastoDoMes)}
+      </p>
+
+      {variacao !== null && (
+        <p
+          className={`text-sm font-semibold ${
+            variacao <= 0 ? 'text-green-700' : 'text-red-700'
+          }`}
+        >
+          {variacao === 0
+            ? `Igual a ${nomeDoMes(dataMesAnterior)}`
+            : `${Math.abs(variacao)}% a ${
+                variacao < 0 ? 'menos' : 'mais'
+              } que ${nomeDoMes(dataMesAnterior)}`}
+        </p>
+      )}
+
+      <p className="mt-auto border-t border-slate-100 pt-4 text-sm leading-relaxed text-muted">
+        {comprasDoMes.length === 0 ? (
+          'Nenhuma compra concluída neste mês ainda.'
+        ) : (
+          <>
+            {comprasDoMes.length}{' '}
+            {comprasDoMes.length === 1 ? 'compra' : 'compras'}
+            {' · '}média de{' '}
+            {formatarMoeda(gastoDoMes / comprasDoMes.length)}
+            {comOrcamento.length > 0 && (
+              <>
+                <br />
+                {dentroDoOrcamento} de {comOrcamento.length}{' '}
+                dentro do orçamento
+              </>
+            )}
+          </>
+        )}
+      </p>
+    </section>
+  )
+}
+
+
+function Categorias({
+  categorias,
+}: {
+  categorias: ListSummaryCategory[]
+}) {
+  const ordenadas = [...categorias]
+    .map((categoria) => ({
+      nome: categoria.category,
+      total: Number(categoria.total),
+    }))
+    .sort((a, b) => b.total - a.total)
+
+  // Três maiores categorias e o resto junto em "Outros".
+  const principais = ordenadas.slice(0, 3)
+  const outros = ordenadas
+    .slice(3)
+    .reduce((total, categoria) => total + categoria.total, 0)
+
+  if (outros > 0) {
+    principais.push({ nome: 'Outros', total: outros })
+  }
+
+  const soma = principais.reduce(
+    (total, categoria) => total + categoria.total,
+    0,
+  )
+  const maior = Math.max(
+    ...principais.map((categoria) => categoria.total),
+    1,
+  )
+
+  return (
+    <section
+      aria-label="Gastos por categoria"
+      className={`${CARD} lg:col-span-3`}
+    >
+      <h2 className="text-[15px] font-semibold">
+        Para onde vai seu dinheiro
+      </h2>
+
+      {principais.length === 0 ? (
+        <p className="mt-3 text-sm text-muted">
+          Os gastos por categoria aparecem depois da primeira
+          compra concluída.
+        </p>
+      ) : (
+        <div className="mt-5 space-y-3.5">
+          {principais.map((categoria) => (
+            <div
+              key={categoria.nome}
+              className="grid grid-cols-[96px_minmax(0,1fr)_48px] items-center gap-3 text-sm sm:grid-cols-[120px_minmax(0,1fr)_56px]"
+            >
+              <span className="truncate text-slate-700">
+                {categoria.nome}
+              </span>
+
+              <div className="h-1.5 overflow-hidden rounded-full bg-slate-100">
+                <div
+                  className="h-full rounded-full bg-brand-600"
+                  style={{
+                    width: `${(categoria.total / maior) * 100}%`,
+                  }}
+                />
+              </div>
+
+              <span className="text-right font-semibold tabular-nums">
+                {Math.round((categoria.total / soma) * 100)}%
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
+  )
+}
+
+
+function MenorPreco({
+  promocoes,
+}: {
+  promocoes: Promotion[]
+}) {
+  const principais = promocoes
+    .map((promocao) => {
+      const media = Number(promocao.historical_average)
+      const preco = Number(promocao.current_price)
+
+      return {
+        id: promocao.item_id,
+        nome: promocao.product,
+        preco,
+        desconto:
+          media > 0
+            ? Math.round(((media - preco) / media) * 100)
+            : 0,
+      }
+    })
+    .sort((a, b) => b.desconto - a.desconto)
+    .slice(0, 3)
+
+  return (
+    <section
+      aria-label="Produtos com menor preço"
+      className={`${CARD} lg:col-span-2`}
+    >
+      <div className="flex items-baseline justify-between gap-3">
+        <h2 className="text-[15px] font-semibold">
+          Produtos com menor preço
+        </h2>
+
+        <Link to="/promocoes" className={LINK}>
+          Ver todos
+        </Link>
+      </div>
+
+      {principais.length === 0 ? (
+        <p className="mt-3 text-sm text-muted">
+          Quando um produto da sua lista estiver mais barato
+          que a média que você pagou, ele aparece aqui.
+        </p>
+      ) : (
+        <div className="mt-2">
+          {principais.map((produto) => (
+            <div
+              key={produto.id}
+              className="flex items-center justify-between gap-3 border-b border-slate-100 py-2.5 text-sm last:border-b-0"
+            >
+              <span className="font-medium">
+                {produto.nome}
+              </span>
+
+              <span className="tabular-nums">
+                <strong>{formatarMoeda(produto.preco)}</strong>{' '}
+                <span className="font-semibold text-green-700">
+                  -{produto.desconto}%
+                </span>
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
+  )
+}
+
+
+function UltimasCompras({
+  historico,
+}: {
+  historico: List[]
+}) {
+  const ultimas = historico.slice(0, 3)
+
+  return (
+    <section
+      aria-label="Últimas compras"
+      className={`${CARD} lg:col-span-5`}
+    >
+      <h2 className="text-[15px] font-semibold">
+        Últimas compras
+      </h2>
+
+      {ultimas.length === 0 ? (
+        <p className="mt-3 text-sm text-muted">
+          Suas compras concluídas aparecem aqui.
+        </p>
+      ) : (
+        <div className="mt-2">
+          {ultimas.map((lista) => {
+            const total = Number(lista.total ?? 0)
+            const orcamento = Number(lista.budget ?? 0)
+            const passou =
+              orcamento > 0 && total > orcamento
+
+            return (
+              <Link
+                key={lista.id}
+                to={`/listas/${lista.id}`}
+                className="grid grid-cols-[56px_minmax(0,1fr)_auto] items-center gap-3 border-t border-slate-100 py-3 text-sm first:border-t-0 hover:text-brand-800"
+              >
+                <span className="text-muted">
+                  {lista.completed_at
+                    ? formatarData(lista.completed_at)
+                    : ''}
+                </span>
+
+                <span className="min-w-0 truncate font-medium">
+                  {lista.name}
+                  {passou && (
+                    <span className="font-medium text-red-700">
+                      {' '}· passou do orçamento
+                    </span>
+                  )}
+                </span>
+
+                <span className="font-semibold tabular-nums">
+                  {formatarMoeda(total)}
+                </span>
+              </Link>
+            )
+          })}
+        </div>
+      )}
+    </section>
+  )
+}
+
 
 export default Dashboard

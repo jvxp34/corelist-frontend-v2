@@ -1,102 +1,104 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 import {
-  Plus,
-  ShoppingCart,
-  Home,
-  X,
-  ArrowRight,
-} from 'lucide-react'
+  Link,
+  useNavigate,
+  useSearchParams,
+} from 'react-router-dom'
 
 import {
   listarListas,
   criarLista,
-  listarItensDaLista,
   type List,
 } from '../services/lists'
+import {
+  formatarData,
+  formatarMoeda,
+  situacaoDoOrcamento,
+  textoDoSaldo,
+} from '../utils/formatar'
+
+
+type Aba = 'andamento' | 'concluidas'
+
+
+const BOTAO_PRINCIPAL =
+  'inline-flex h-11 items-center justify-center rounded-xl bg-brand-600 px-5 text-[15px] font-semibold text-white transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-60'
+
+const BOTAO_SECUNDARIO =
+  'inline-flex h-11 items-center justify-center rounded-xl border border-line bg-white px-5 text-[15px] font-semibold text-ink transition hover:bg-canvas'
+
+const CAMPO =
+  'mt-1.5 h-11 w-full rounded-xl border border-slate-300 bg-white px-3.5 text-[15px] outline-none transition focus:border-brand-600 focus:ring-2 focus:ring-brand-100'
+
 
 function Lists() {
+  const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+
+  // /listas?nova=1 (botão "+ Nova lista" do Início) já abre o formulário.
   const [mostrarFormulario, setMostrarFormulario] =
-    useState(false)
+    useState(searchParams.get('nova') === '1')
 
   const [nomeLista, setNomeLista] = useState('')
   const [orcamento, setOrcamento] = useState('')
 
-  const [listas, setListas] = useState<List[]>([])
+  const [listas, setListas] =
+    useState<List[] | null>(null)
 
-  const [resumos, setResumos] = useState<
-    Record<number, { produtos: number; valor: number }>
-  >({})
+  const [aba, setAba] =
+    useState<Aba>('andamento')
 
-  const [carregando, setCarregando] = useState(true)
   const [salvando, setSalvando] = useState(false)
   const [erro, setErro] = useState('')
 
-  const navigate = useNavigate()
 
-  async function carregarListas() {
-    try {
-      setCarregando(true)
-      setErro('')
+  useEffect(() => {
+    let cancelado = false
 
-      const dados = await listarListas()
-
-      setListas(dados)
-
-      const resultados = await Promise.all(
-        dados.map(async (lista) => {
-          try {
-            const itens = await listarItensDaLista(lista.id)
-
-            const valor = itens.reduce(
-              (total, item) =>
-                total + Number(item.subtotal ?? 0),
-              0,
-            )
-
-            return {
-              id: lista.id,
-              produtos: itens.length,
-              valor,
-            }
-          } catch {
-            return {
-              id: lista.id,
-              produtos: 0,
-              valor: 0,
-            }
-          }
-        }),
-      )
-
-      const novosResumos: Record<
-        number,
-        { produtos: number; valor: number }
-      > = {}
-
-      resultados.forEach((resultado) => {
-        novosResumos[resultado.id] = {
-          produtos: resultado.produtos,
-          valor: resultado.valor,
+    listarListas()
+      .then((dados) => {
+        if (!cancelado) {
+          setListas(dados)
+        }
+      })
+      .catch(() => {
+        if (!cancelado) {
+          setListas([])
+          setErro('Não foi possível carregar suas listas.')
         }
       })
 
-      setResumos(novosResumos)
-    } catch {
-      setErro(
-        'Não foi possível carregar suas listas.',
-      )
-    } finally {
-      setCarregando(false)
+    return () => {
+      cancelado = true
     }
-  }
-
-  useEffect(() => {
-    carregarListas()
   }, [])
 
-  async function criarNovaLista() {
+
+  function fecharFormulario() {
+    setMostrarFormulario(false)
+    setNomeLista('')
+    setOrcamento('')
+  }
+
+
+  async function criarNovaLista(
+    event: React.FormEvent<HTMLFormElement>,
+  ) {
+    event.preventDefault()
+
     if (nomeLista.trim() === '') {
+      setErro('Dê um nome para a lista.')
+      return
+    }
+
+    const valorOrcamento =
+      orcamento === '' ? null : Number(orcamento)
+
+    if (
+      valorOrcamento !== null &&
+      (Number.isNaN(valorOrcamento) || valorOrcamento < 0)
+    ) {
+      setErro('Informe um orçamento válido ou deixe vazio.')
       return
     }
 
@@ -106,202 +108,277 @@ function Lists() {
 
       const novaLista = await criarLista({
         name: nomeLista.trim(),
-        budget:
-          orcamento === ''
-            ? 0
-            : Number(orcamento),
+        budget: valorOrcamento,
       })
 
-      setListas((listasAtuais) => [
-        ...listasAtuais,
-        novaLista,
-      ])
-
-      setResumos((resumosAtuais) => ({
-        ...resumosAtuais,
-        [novaLista.id]: {
-          produtos: 0,
-          valor: 0,
-        },
-      }))
-
-      setNomeLista('')
-      setOrcamento('')
-      setMostrarFormulario(false)
+      // Lista nova vai direto para a tela de adicionar produtos.
+      navigate(`/listas/${novaLista.id}`)
     } catch {
-      setErro(
-        'Não foi possível criar a lista.',
-      )
-    } finally {
+      setErro('Não foi possível criar a lista.')
       setSalvando(false)
     }
   }
 
+
+  const emAndamento = (listas ?? [])
+    .filter((lista) => !lista.is_completed)
+    .sort((a, b) => b.updated_at.localeCompare(a.updated_at))
+
+  const concluidas = (listas ?? [])
+    .filter((lista) => lista.is_completed)
+    .sort((a, b) =>
+      (b.completed_at ?? '').localeCompare(a.completed_at ?? ''),
+    )
+
+  const visiveis =
+    aba === 'andamento' ? emAndamento : concluidas
+
+
   return (
-    <div className="mx-auto max-w-6xl">
-      <div className="flex items-center justify-between">
+    <div className="mx-auto max-w-5xl">
+      <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">
+          <h1 className="font-display text-[28px] font-bold tracking-tight sm:text-[32px]">
             Minhas listas
           </h1>
 
-          <p className="mt-2 text-gray-500">
-            Organize suas compras de forma inteligente.
+          <p className="mt-1 text-muted">
+            Crie listas, defina um orçamento e acompanhe na hora
+            da compra.
           </p>
         </div>
 
-        <button
-          type="button"
-          onClick={() =>
-            setMostrarFormulario(true)
-          }
-          className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-3 font-semibold text-white transition hover:bg-blue-700"
-        >
-          <Plus size={18} />
-          Nova lista
-        </button>
+        {!mostrarFormulario && (
+          <button
+            type="button"
+            onClick={() => setMostrarFormulario(true)}
+            className={BOTAO_PRINCIPAL}
+          >
+            + Nova lista
+          </button>
+        )}
       </div>
 
+
       {erro && (
-        <div className="mt-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-red-600">
+        <div
+          role="alert"
+          className="mt-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-red-700"
+        >
           {erro}
         </div>
       )}
 
+
       {mostrarFormulario && (
-        <div className="mt-6 rounded-2xl bg-white p-6 shadow">
-          <h2 className="text-xl font-bold">
-            Criar nova lista
+        <form
+          onSubmit={criarNovaLista}
+          className="mt-6 rounded-2xl border border-line bg-white p-5 sm:p-6"
+        >
+          <h2 className="font-display text-lg font-semibold">
+            Nova lista
           </h2>
 
-          <input
-            type="text"
-            value={nomeLista}
-            onChange={(event) =>
-              setNomeLista(event.target.value)
-            }
-            placeholder="Nome da lista"
-            className="mt-4 w-full rounded-lg border border-gray-300 px-4 py-3 outline-none focus:border-blue-600"
-          />
+          <div className="mt-4 grid gap-4 sm:grid-cols-2">
+            <label className="text-sm font-semibold text-slate-700">
+              Nome da lista
+              <input
+                type="text"
+                value={nomeLista}
+                onChange={(event) =>
+                  setNomeLista(event.target.value)
+                }
+                placeholder="Ex: Compra da semana"
+                autoFocus
+                className={CAMPO}
+              />
+            </label>
 
-          <input
-            type="number"
-            min="0"
-            step="0.01"
-            value={orcamento}
-            onChange={(event) =>
-              setOrcamento(event.target.value)
-            }
-            placeholder="Orçamento (opcional)"
-            className="mt-4 w-full rounded-lg border border-gray-300 px-4 py-3 outline-none focus:border-blue-600"
-          />
+            <label className="text-sm font-semibold text-slate-700">
+              Orçamento (R$){' '}
+              <span className="font-normal text-muted">
+                opcional
+              </span>
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                inputMode="decimal"
+                value={orcamento}
+                onChange={(event) =>
+                  setOrcamento(event.target.value)
+                }
+                placeholder="Ex: 250"
+                className={CAMPO}
+              />
+            </label>
+          </div>
 
-          <div className="mt-4 flex gap-3">
+          <div className="mt-5 flex flex-wrap gap-3">
+            <button
+              type="submit"
+              disabled={salvando}
+              className={BOTAO_PRINCIPAL}
+            >
+              {salvando ? 'Criando...' : 'Criar lista'}
+            </button>
+
             <button
               type="button"
-              onClick={() => {
-                setMostrarFormulario(false)
-                setNomeLista('')
-                setOrcamento('')
-              }}
-              className="flex items-center gap-2 rounded-lg border border-gray-300 px-4 py-2 font-medium hover:bg-gray-50"
+              onClick={fecharFormulario}
+              className={BOTAO_SECUNDARIO}
             >
-              <X size={18} />
               Cancelar
             </button>
-
-            <button
-              type="button"
-              onClick={criarNovaLista}
-              disabled={salvando}
-              className="rounded-lg bg-blue-600 px-4 py-2 font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {salvando
-                ? 'Criando...'
-                : 'Criar lista'}
-            </button>
           </div>
-        </div>
+        </form>
       )}
 
-      {carregando ? (
-        <div className="mt-8 rounded-2xl bg-white p-8 text-center shadow">
-          <p className="text-gray-500">
-            Carregando suas listas...
-          </p>
+
+      <div
+        role="group"
+        aria-label="Filtrar listas"
+        className="mt-6 flex gap-2"
+      >
+        <AbaBotao
+          ativa={aba === 'andamento'}
+          onClick={() => setAba('andamento')}
+        >
+          Em andamento · {emAndamento.length}
+        </AbaBotao>
+
+        <AbaBotao
+          ativa={aba === 'concluidas'}
+          onClick={() => setAba('concluidas')}
+        >
+          Concluídas · {concluidas.length}
+        </AbaBotao>
+      </div>
+
+
+      {listas === null ? (
+        <div className="mt-5 rounded-2xl border border-line bg-white p-8 text-center text-muted">
+          Carregando suas listas...
         </div>
-      ) : listas.length === 0 ? (
-        <div className="mt-8 rounded-2xl bg-white p-8 text-center shadow">
-          <ShoppingCart
-            size={40}
-            className="mx-auto text-gray-400"
-          />
+      ) : visiveis.length === 0 ? (
+        <div className="mt-5 rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center">
+          <p className="font-display text-lg font-semibold">
+            {aba === 'andamento'
+              ? 'Nenhuma lista em andamento'
+              : 'Nenhuma compra concluída ainda'}
+          </p>
 
-          <h2 className="mt-4 text-xl font-bold text-gray-900">
-            Você ainda não possui listas
-          </h2>
-
-          <p className="mt-2 text-gray-500">
-            Crie sua primeira lista de compras.
+          <p className="mx-auto mt-1 max-w-sm text-sm text-muted">
+            {aba === 'andamento'
+              ? 'Crie uma lista com o que você precisa comprar.'
+              : 'Quando você concluir uma compra, ela aparece aqui com o total gasto.'}
           </p>
         </div>
       ) : (
-        <div className="mt-8 grid gap-6 md:grid-cols-2">
-          {listas.map((lista, index) => {
-            const resumo = resumos[lista.id] ?? {
-              produtos: 0,
-              valor: 0,
-            }
-
-            return (
-              <div
-                key={lista.id}
-                className="rounded-2xl bg-white p-6 shadow"
-              >
-                <div className="flex items-center gap-3">
-                  {index === 0 ? (
-                    <ShoppingCart size={22} />
-                  ) : (
-                    <Home size={22} />
-                  )}
-
-                  <h2 className="text-xl font-bold">
-                    {lista.name}
-                  </h2>
-                </div>
-
-                <p className="mt-2 text-gray-500">
-                  {resumo.produtos} produtos
-                </p>
-
-                <p className="mt-1 font-semibold">
-                  R$ {resumo.valor.toFixed(2)}
-                </p>
-
-                <p className="mt-1 text-sm text-gray-500">
-                  Orçamento: R${' '}
-                  {Number(lista.budget).toFixed(2)}
-                </p>
-
-                <button
-                  type="button"
-                  onClick={() =>
-                    navigate(
-                      `/listas/${lista.id}`,
-                    )
-                  }
-                  className="mt-6 flex items-center gap-2 rounded-lg border border-gray-300 px-4 py-2 font-medium hover:bg-gray-50"
-                >
-                  Abrir lista
-                  <ArrowRight size={18} />
-                </button>
-              </div>
-            )
-          })}
+        <div className="mt-5 grid gap-3 md:grid-cols-2">
+          {visiveis.map((lista) => (
+            <CartaoLista key={lista.id} lista={lista} />
+          ))}
         </div>
       )}
     </div>
   )
 }
+
+
+function AbaBotao({
+  ativa,
+  onClick,
+  children,
+}: {
+  ativa: boolean
+  onClick: () => void
+  children: React.ReactNode
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={ativa}
+      className={`h-10 rounded-full px-4 text-sm font-semibold transition ${
+        ativa
+          ? 'bg-ink text-white'
+          : 'border border-line bg-white text-slate-700 hover:bg-canvas'
+      }`}
+    >
+      {children}
+    </button>
+  )
+}
+
+
+function CartaoLista({ lista }: { lista: List }) {
+  const itens = lista.items ?? []
+  const total = Number(lista.total ?? 0)
+  const noCarrinho = itens.filter(
+    (item) => item.is_completed,
+  ).length
+  const situacao = situacaoDoOrcamento(total, lista.budget)
+
+  const detalhe = lista.is_completed
+    ? `${itens.length} produtos · concluída em ${
+        lista.completed_at
+          ? formatarData(lista.completed_at)
+          : ''
+      }`
+    : itens.length === 0
+      ? 'Nenhum produto ainda'
+      : `${itens.length} produtos · ${noCarrinho} no carrinho`
+
+  return (
+    <Link
+      to={`/listas/${lista.id}`}
+      className="block rounded-2xl border border-line bg-white p-5 transition hover:border-brand-100 hover:shadow-sm"
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h2 className="truncate text-base font-semibold">
+            {lista.name}
+          </h2>
+          <p className="mt-0.5 text-sm text-muted">
+            {detalhe}
+          </p>
+        </div>
+
+        <span
+          className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ${situacao.corChip}`}
+        >
+          {situacao.rotulo}
+        </span>
+      </div>
+
+      {situacao.nivel !== 'sem' && (
+        <div className="mt-4 h-2 overflow-hidden rounded-full bg-slate-100">
+          <div
+            className={`h-full rounded-full ${situacao.corBarra}`}
+            style={{
+              width: `${Math.min(situacao.usado * 100, 100)}%`,
+            }}
+          />
+        </div>
+      )}
+
+      <div className="mt-2.5 flex flex-wrap justify-between gap-x-3 text-sm">
+        <span className="tabular-nums text-muted">
+          {situacao.nivel === 'sem'
+            ? formatarMoeda(total)
+            : `${formatarMoeda(total)} de ${formatarMoeda(situacao.orcamento)}`}
+        </span>
+
+        {situacao.nivel !== 'sem' && (
+          <span className={`font-semibold ${situacao.corTexto}`}>
+            {textoDoSaldo(situacao)}
+          </span>
+        )}
+      </div>
+    </Link>
+  )
+}
+
 
 export default Lists

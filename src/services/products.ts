@@ -4,7 +4,8 @@ export interface Product {
   id: number
   name: string
   description: string
-  price: number
+  // Preço de referência; pode não existir.
+  price: number | string | null
   unit: string
   category: number | null
   created_at: string
@@ -36,7 +37,7 @@ export async function listarProdutos(): Promise<Product[]> {
 export async function criarProduto(produto: {
   name: string
   description: string
-  price: number
+  price: number | null
   unit: string
   category: number | null
 }): Promise<Product> {
