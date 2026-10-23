@@ -153,6 +153,46 @@ export async function removerItemDaLista(
   }
 }
 
+// Só funciona em listas em andamento; concluídas ficam bloqueadas no backend.
+export async function atualizarLista(
+  listId: number,
+  dados: {
+    name?: string
+    budget?: number | null
+  },
+): Promise<List> {
+  const response = await apiFetch(
+    `${API_URL}/lists/${listId}/`,
+    {
+      method: 'PATCH',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(dados),
+    },
+  )
+
+  if (!response.ok) {
+    throw new Error('Erro ao atualizar a lista')
+  }
+
+  return response.json()
+}
+
+export async function excluirLista(
+  listId: number,
+): Promise<void> {
+  const response = await apiFetch(
+    `${API_URL}/lists/${listId}/`,
+    {
+      method: 'DELETE',
+      headers: getAuthHeaders(),
+    },
+  )
+
+  if (!response.ok) {
+    throw new Error('Erro ao excluir a lista')
+  }
+}
+
 /*
  * HISTÓRICO (listas concluídas)
  */

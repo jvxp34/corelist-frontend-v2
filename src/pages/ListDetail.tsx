@@ -13,6 +13,8 @@ import {
   atualizarItemDaLista,
   removerItemDaLista,
   concluirLista,
+  atualizarLista,
+  excluirLista,
   type List,
   type ListItem,
 } from '../services/lists'
@@ -92,6 +94,18 @@ function ListDetail() {
     useState('')
 
   const [salvandoItem, setSalvandoItem] =
+    useState(false)
+
+  // Painel de nome, orçamento e exclusão (só listas em andamento).
+  const [editandoDados, setEditandoDados] =
+    useState(false)
+
+  const [nomeEdicao, setNomeEdicao] = useState('')
+
+  const [orcamentoEdicao, setOrcamentoEdicao] =
+    useState('')
+
+  const [salvandoDados, setSalvandoDados] =
     useState(false)
 
 
@@ -305,6 +319,79 @@ function ListDetail() {
       )
     } finally {
       setSalvandoItem(false)
+    }
+  }
+
+
+  function abrirEdicaoDados(atual: List) {
+    setNomeEdicao(atual.name)
+    setOrcamentoEdicao(
+      atual.budget === null || Number(atual.budget) === 0
+        ? ''
+        : String(Number(atual.budget)),
+    )
+    setEditandoDados(true)
+    setMostrarFormulario(false)
+    setErro('')
+  }
+
+
+  async function salvarDados(
+    event: React.FormEvent<HTMLFormElement>,
+  ) {
+    event.preventDefault()
+
+    if (nomeEdicao.trim() === '') {
+      setErro('Dê um nome para a lista.')
+      return
+    }
+
+    const novoOrcamento =
+      orcamentoEdicao === '' ? null : Number(orcamentoEdicao)
+
+    if (novoOrcamento !== null && !(novoOrcamento >= 0)) {
+      setErro('Informe um orçamento válido ou deixe vazio.')
+      return
+    }
+
+    try {
+      setSalvandoDados(true)
+      setErro('')
+
+      const atualizada = await atualizarLista(listId, {
+        name: nomeEdicao.trim(),
+        budget: novoOrcamento,
+      })
+
+      setLista(atualizada)
+      setEditandoDados(false)
+    } catch {
+      setErro('Não foi possível salvar as alterações da lista.')
+    } finally {
+      setSalvandoDados(false)
+    }
+  }
+
+
+  async function excluir(atual: List) {
+    if (
+      !window.confirm(
+        `Excluir a lista "${atual.name}" e todos os produtos dela? Não dá para desfazer.`,
+      )
+    ) {
+      return
+    }
+
+    try {
+      setSalvandoDados(true)
+      setErro('')
+
+      await excluirLista(listId)
+
+      navigate('/listas')
+    } catch {
+      setErro('Não foi possível excluir a lista.')
+      setSalvandoDados(false)
     }
   }
 
@@ -606,7 +693,18 @@ function ListDetail() {
           </p>
         </div>
 
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          {!lista.is_completed && !editandoDados && (
+            <button
+              type="button"
+              onClick={() => abrirEdicaoDados(lista)}
+              disabled={concluindo}
+              className={BOTAO_SECUNDARIO}
+            >
+              Editar
+            </button>
+          )}
+
           {lista.is_completed && !editandoLista && (
             <button
               type="button"
@@ -632,6 +730,80 @@ function ListDetail() {
           )}
         </div>
       </div>
+
+
+      {editandoDados && !lista.is_completed && (
+        <form
+          onSubmit={salvarDados}
+          className="mt-5 rounded-2xl border border-line bg-white p-5"
+        >
+          <h2 className="font-display text-lg font-semibold">
+            Editar lista
+          </h2>
+
+          <div className="mt-4 grid gap-4 sm:grid-cols-2">
+            <label className={ROTULO}>
+              Nome da lista
+              <input
+                type="text"
+                value={nomeEdicao}
+                onChange={(event) =>
+                  setNomeEdicao(event.target.value)
+                }
+                autoFocus
+                className={CAMPO}
+              />
+            </label>
+
+            <label className={ROTULO}>
+              Orçamento (R$){' '}
+              <span className="font-normal text-muted">
+                vazio = sem orçamento
+              </span>
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                inputMode="decimal"
+                value={orcamentoEdicao}
+                onChange={(event) =>
+                  setOrcamentoEdicao(event.target.value)
+                }
+                placeholder="Ex: 250"
+                className={CAMPO}
+              />
+            </label>
+          </div>
+
+          <div className="mt-5 flex flex-wrap items-center gap-3">
+            <button
+              type="submit"
+              disabled={salvandoDados}
+              className={BOTAO_PRINCIPAL}
+            >
+              {salvandoDados ? 'Salvando...' : 'Salvar'}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setEditandoDados(false)}
+              disabled={salvandoDados}
+              className={BOTAO_SECUNDARIO}
+            >
+              Cancelar
+            </button>
+
+            <button
+              type="button"
+              onClick={() => excluir(lista)}
+              disabled={salvandoDados}
+              className="ml-auto h-11 rounded-xl px-3 text-[15px] font-semibold text-red-700 hover:bg-red-50 disabled:opacity-60"
+            >
+              Excluir lista
+            </button>
+          </div>
+        </form>
+      )}
 
 
       {/* Resumo: fica preso no topo enquanto o usuário rola a lista. */}
