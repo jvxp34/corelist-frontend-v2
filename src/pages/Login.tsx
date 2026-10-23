@@ -1,5 +1,10 @@
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import {
+  Link,
+  Navigate,
+  useNavigate,
+  useSearchParams,
+} from 'react-router-dom'
 
 import AuthLayout, {
   BOTAO_AUTH,
@@ -8,10 +13,13 @@ import AuthLayout, {
   ROTULO_AUTH,
 } from '../components/AuthLayout'
 import { entrar } from '../services/auth'
+import { estaLogado } from '../api/cliente'
 
 
 function Login() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const sessaoExpirou = searchParams.get('expirou') === '1'
 
   const [email, setEmail] = useState('')
   const [senha, setSenha] = useState('')
@@ -43,11 +51,25 @@ function Login() {
   }
 
 
+  // Quem já está logado não precisa ver o login.
+  if (estaLogado() && !carregando) {
+    return <Navigate to="/dashboard" replace />
+  }
+
   return (
     <AuthLayout
       titulo="Entre na sua conta"
       subtitulo="Acesse suas listas e continue de onde parou."
     >
+      {sessaoExpirou && !erro && (
+        <p
+          role="status"
+          className="mb-5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800"
+        >
+          Sua sessão expirou. Entre de novo para continuar.
+        </p>
+      )}
+
       <form
         onSubmit={handleSubmit}
         noValidate

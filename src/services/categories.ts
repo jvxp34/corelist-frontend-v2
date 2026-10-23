@@ -1,4 +1,5 @@
 import API_URL from '../api/api'
+import { apiFetch } from '../api/cliente'
 
 export interface Category {
   id: number
@@ -8,7 +9,7 @@ export interface Category {
 export async function listarCategorias(): Promise<Category[]> {
   const token = localStorage.getItem('access_token')
 
-  const response = await fetch(`${API_URL}/categories/`, {
+  const response = await apiFetch(`${API_URL}/categories/`, {
     method: 'GET',
     headers: {
       'Content-Type': 'application/json',

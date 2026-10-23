@@ -1,4 +1,5 @@
 import API_URL from '../api/api'
+import { apiFetch } from '../api/cliente'
 
 export interface Usuario {
   id: number
@@ -22,7 +23,7 @@ export function obterUsuarioAtual(): Promise<Usuario> {
   }
 
   if (!usuarioEmAndamento) {
-    usuarioEmAndamento = fetch(`${API_URL}/auth/me/`, {
+    usuarioEmAndamento = apiFetch(`${API_URL}/auth/me/`, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
@@ -59,7 +60,7 @@ export async function atualizarNome(dados: {
   first_name: string
   last_name: string
 }): Promise<Usuario> {
-  const response = await fetch(`${API_URL}/auth/me/`, {
+  const response = await apiFetch(`${API_URL}/auth/me/`, {
     method: 'PATCH',
     headers: {
       'Content-Type': 'application/json',

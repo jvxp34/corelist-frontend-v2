@@ -1,10 +1,16 @@
-import { Outlet } from 'react-router-dom'
+import { Navigate, Outlet } from 'react-router-dom'
 
 import Sidebar from '../components/Sidebar'
 import BottomNav from '../components/BottomNav'
 import Logo from '../components/Logo'
+import { estaLogado } from '../api/cliente'
 
 function MainLayout() {
+  // Telas internas só com login. Token vencido é renovado pelo apiFetch.
+  if (!estaLogado()) {
+    return <Navigate to="/login" replace />
+  }
+
   return (
     <div className="min-h-screen bg-canvas">
       {/* Menu lateral (desktop) */}

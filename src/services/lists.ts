@@ -1,4 +1,5 @@
 import API_URL from '../api/api'
+import { apiFetch } from '../api/cliente'
 
 export interface List {
   id: number
@@ -35,7 +36,7 @@ function getAuthHeaders() {
 }
 
 export async function listarListas(): Promise<List[]> {
-  const response = await fetch(`${API_URL}/lists/`, {
+  const response = await apiFetch(`${API_URL}/lists/`, {
     method: 'GET',
     headers: getAuthHeaders(),
   })
@@ -55,7 +56,7 @@ export async function criarLista(lista: {
   name: string
   budget: number | null
 }): Promise<List> {
-  const response = await fetch(`${API_URL}/lists/`, {
+  const response = await apiFetch(`${API_URL}/lists/`, {
     method: 'POST',
     headers: getAuthHeaders(),
     body: JSON.stringify(lista),
@@ -71,7 +72,7 @@ export async function criarLista(lista: {
 export async function listarItensDaLista(
   listId: number,
 ): Promise<ListItem[]> {
-  const response = await fetch(
+  const response = await apiFetch(
     `${API_URL}/lists/${listId}/items/`,
     {
       method: 'GET',
@@ -94,7 +95,7 @@ export async function adicionarItemNaLista(
     price?: number | null
   },
 ): Promise<ListItem> {
-  const response = await fetch(
+  const response = await apiFetch(
     `${API_URL}/lists/${listId}/items/`,
     {
       method: 'POST',
@@ -119,7 +120,7 @@ export async function atualizarItemDaLista(
     is_completed?: boolean
   },
 ): Promise<ListItem> {
-  const response = await fetch(
+  const response = await apiFetch(
     `${API_URL}/lists/${listId}/items/${itemId}/`,
     {
       method: 'PATCH',
@@ -139,7 +140,7 @@ export async function removerItemDaLista(
   listId: number,
   itemId: number,
 ): Promise<void> {
-  const response = await fetch(
+  const response = await apiFetch(
     `${API_URL}/lists/${listId}/items/${itemId}/`,
     {
       method: 'DELETE',
@@ -157,7 +158,7 @@ export async function removerItemDaLista(
  */
 
 export async function obterHistorico(): Promise<List[]> {
-  const response = await fetch(
+  const response = await apiFetch(
     `${API_URL}/lists/history/`,
     {
       method: 'GET',
@@ -211,7 +212,7 @@ export interface ListSummary {
 }
 
 export async function obterResumoListas(): Promise<ListSummary> {
-  const response = await fetch(
+  const response = await apiFetch(
     `${API_URL}/lists/summary/`,
     {
       method: 'GET',
@@ -238,7 +239,7 @@ export interface ListInsight {
 }
 
 export async function obterInsights(): Promise<ListInsight[]> {
-  const response = await fetch(
+  const response = await apiFetch(
     `${API_URL}/lists/insights/`,
     {
       method: 'GET',
@@ -275,7 +276,7 @@ export interface Promotion {
 }
 
 export async function obterPromocoes(): Promise<Promotion[]> {
-  const response = await fetch(
+  const response = await apiFetch(
     `${API_URL}/lists/promotions/`,
     {
       method: 'GET',
@@ -297,7 +298,7 @@ export async function obterPromocoes(): Promise<Promotion[]> {
 export async function concluirLista(
   listId: number,
 ): Promise<List> {
-  const response = await fetch(
+  const response = await apiFetch(
     `${API_URL}/lists/${listId}/complete/`,
     {
       method: 'POST',

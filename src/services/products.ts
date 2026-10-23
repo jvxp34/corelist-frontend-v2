@@ -1,4 +1,5 @@
 import API_URL from '../api/api'
+import { apiFetch } from '../api/cliente'
 
 export interface Product {
   id: number
@@ -22,7 +23,7 @@ function getAuthHeaders() {
 }
 
 export async function listarProdutos(): Promise<Product[]> {
-  const response = await fetch(`${API_URL}/products/`, {
+  const response = await apiFetch(`${API_URL}/products/`, {
     method: 'GET',
     headers: getAuthHeaders(),
   })
@@ -41,7 +42,7 @@ export async function criarProduto(produto: {
   unit: string
   category: number | null
 }): Promise<Product> {
-  const response = await fetch(`${API_URL}/products/`, {
+  const response = await apiFetch(`${API_URL}/products/`, {
     method: 'POST',
     headers: getAuthHeaders(),
     body: JSON.stringify(produto),
@@ -55,7 +56,7 @@ export async function criarProduto(produto: {
 }
 
 export async function removerProduto(id: number): Promise<void> {
-  const response = await fetch(`${API_URL}/products/${id}/`, {
+  const response = await apiFetch(`${API_URL}/products/${id}/`, {
     method: 'DELETE',
     headers: getAuthHeaders(),
   })
