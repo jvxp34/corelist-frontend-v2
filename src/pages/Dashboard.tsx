@@ -2,6 +2,10 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 
 import { useUsuario } from '../hooks/useUsuario'
+import InstalarApp from '../components/InstalarApp'
+
+
+const CHAVE_AVISO_INSTALAR = 'avisoInstalarFechado'
 import { nomeDeExibicao } from '../services/auth'
 import {
   listarListas,
@@ -63,6 +67,25 @@ function Dashboard() {
     useState<DadosInicio | null>(null)
 
   const [erro, setErro] = useState('')
+
+  // Aviso "instalar o app": quem dispensa não vê de novo neste aparelho.
+  const [avisoInstalarFechado, setAvisoInstalarFechado] =
+    useState(() => {
+      try {
+        return localStorage.getItem(CHAVE_AVISO_INSTALAR) === '1'
+      } catch {
+        return false
+      }
+    })
+
+  function fecharAvisoInstalar() {
+    setAvisoInstalarFechado(true)
+    try {
+      localStorage.setItem(CHAVE_AVISO_INSTALAR, '1')
+    } catch {
+      // Sem localStorage o aviso só volta ao recarregar a página.
+    }
+  }
 
 
   useEffect(() => {
@@ -151,6 +174,13 @@ function Dashboard() {
           + Nova lista
         </Link>
       </div>
+
+
+      {!avisoInstalarFechado && (
+        <div className="md:hidden">
+          <InstalarApp aoFechar={fecharAvisoInstalar} />
+        </div>
+      )}
 
 
       {erro && (

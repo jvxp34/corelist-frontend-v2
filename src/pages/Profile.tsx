@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 
 import { useUsuario } from '../hooks/useUsuario'
+import InstalarApp from '../components/InstalarApp'
 import {
   atualizarNome,
   nomeDeExibicao,
@@ -41,6 +42,10 @@ function Profile() {
       ) : (
         <FormularioConta usuario={usuario} />
       )}
+
+      <div className="mt-5">
+        <InstalarApp />
+      </div>
 
       <section className="mt-5 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-line bg-white p-5 sm:p-6">
         <div>

@@ -13,6 +13,7 @@ import {
 } from 'lucide-react'
 
 import { itensDoMenu } from './navegacao'
+import InstalarApp from './InstalarApp'
 import { sair } from '../services/auth'
 
 // Abas fixas do celular; o resto fica em "Mais".
@@ -141,6 +142,8 @@ function BottomNav() {
                 </NavLink>
               )
             })}
+
+            <InstalarApp variante="linha" />
 
             <button
               type="button"
