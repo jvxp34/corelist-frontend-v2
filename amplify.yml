@@ -1,0 +1,36 @@
+# Build do frontend no AWS Amplify Hosting.
+# A variável VITE_API_URL é definida no console do Amplify
+# (ex.: https://54-207-10-20.sslip.io/api).
+version: 1
+frontend:
+  phases:
+    preBuild:
+      commands:
+        # Vite 8 precisa de Node 20.19+ ou 22.12+.
+        - nvm install 22
+        - nvm use 22
+        - npm ci
+    build:
+      commands:
+        - npm run build
+  artifacts:
+    baseDirectory: dist
+    files:
+      - '**/*'
+  cache:
+    paths:
+      - node_modules/**/*
+  customHeaders:
+    # O service worker e a página precisam sempre da versão nova.
+    - pattern: '/sw.js'
+      headers:
+        - key: Cache-Control
+          value: no-cache
+    - pattern: '/index.html'
+      headers:
+        - key: Cache-Control
+          value: no-cache
+    - pattern: '/manifest.webmanifest'
+      headers:
+        - key: Content-Type
+          value: application/manifest+json
