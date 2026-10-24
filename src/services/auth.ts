@@ -6,6 +6,8 @@ export interface Usuario {
   email: string
   first_name: string
   last_name: string
+  // Administrador: pode editar e apagar produtos do catálogo.
+  is_staff: boolean
 }
 
 // O menu e a tela de Início pedem o usuário ao mesmo tempo; guardamos a

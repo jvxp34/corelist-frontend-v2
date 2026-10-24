@@ -15,6 +15,7 @@ import {
 } from '../services/categories'
 import { formatarMoeda } from '../utils/formatar'
 import CreditoOpenFoodFacts from '../components/CreditoOpenFoodFacts'
+import { useUsuario } from '../hooks/useUsuario'
 
 
 const BOTAO_PRINCIPAL =
@@ -38,6 +39,9 @@ interface AvisoBusca {
 
 
 function Products() {
+  const usuario = useUsuario()
+  const podeApagar = usuario?.is_staff === true
+
   const [produtos, setProdutos] =
     useState<Product[] | null>(null)
 
@@ -211,11 +215,9 @@ function Products() {
           (item) => item.id !== produto.id,
         ),
       )
-    } catch {
-      // O backend protege produtos que já estão em alguma lista.
-      setErro(
-        `Não foi possível remover "${produto.name}". Se ele já está em alguma lista, ele precisa continuar no catálogo.`,
-      )
+    } catch (error) {
+      // Ex.: produto em alguma lista (409) ou usuário sem permissão (403).
+      setErro((error as Error).message)
     }
   }
 
@@ -557,14 +559,17 @@ function Products() {
                         </p>
                       )}
 
-                      <button
-                        type="button"
-                        onClick={() => remover(produto)}
-                        aria-label={`Remover ${produto.name}`}
-                        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-slate-400 transition hover:bg-red-50 hover:text-red-700"
-                      >
-                        <Trash2 size={18} aria-hidden="true" />
-                      </button>
+                      {/* Só administrador apaga: o catálogo é de todos. */}
+                      {podeApagar && (
+                        <button
+                          type="button"
+                          onClick={() => remover(produto)}
+                          aria-label={`Remover ${produto.name}`}
+                          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-slate-400 transition hover:bg-red-50 hover:text-red-700"
+                        >
+                          <Trash2 size={18} aria-hidden="true" />
+                        </button>
+                      )}
                     </li>
                   )
                 })}

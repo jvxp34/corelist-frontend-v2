@@ -136,6 +136,8 @@ export async function removerProduto(id: number): Promise<void> {
   })
 
   if (!response.ok) {
-    throw new Error('Erro ao remover produto')
+    throw new Error(
+      await mensagemDeErro(response, 'Não foi possível remover o produto.'),
+    )
   }
 }
