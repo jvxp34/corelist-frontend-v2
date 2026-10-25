@@ -17,6 +17,7 @@ import {
 import { formatarMoeda } from '../utils/formatar'
 import CreditoOpenFoodFacts from '../components/CreditoOpenFoodFacts'
 import { useUsuario } from '../hooks/useUsuario'
+import { useConfirmacao } from '../hooks/useConfirmacao'
 
 
 const BOTAO_PRINCIPAL =
@@ -42,6 +43,7 @@ interface AvisoBusca {
 function Products() {
   const usuario = useUsuario()
   const podeApagar = usuario?.is_staff === true
+  const confirmar = useConfirmacao()
 
   const [produtos, setProdutos] =
     useState<Product[] | null>(null)
@@ -198,11 +200,15 @@ function Products() {
 
 
   async function remover(produto: Product) {
-    if (
-      !window.confirm(
-        `Remover "${produto.name}" do catálogo?`,
-      )
-    ) {
+    const confirmou = await confirmar({
+      titulo: `Remover "${produto.name}"?`,
+      mensagem:
+        'O produto sai do catálogo para todos os usuários. Produtos que já estão em alguma lista não podem ser removidos.',
+      textoConfirmar: 'Remover',
+      perigoso: true,
+    })
+
+    if (!confirmou) {
       return
     }
 

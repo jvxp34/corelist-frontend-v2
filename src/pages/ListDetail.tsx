@@ -29,6 +29,7 @@ import {
   situacaoDoOrcamento,
   textoDoSaldo,
 } from '../utils/formatar'
+import { useConfirmacao } from '../hooks/useConfirmacao'
 
 
 const BOTAO_PRINCIPAL =
@@ -46,6 +47,7 @@ const ROTULO = 'text-sm font-semibold text-slate-700'
 function ListDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
+  const confirmar = useConfirmacao()
 
   const listId = Number(id)
 
@@ -374,11 +376,15 @@ function ListDetail() {
 
 
   async function excluir(atual: List) {
-    if (
-      !window.confirm(
-        `Excluir a lista "${atual.name}" e todos os produtos dela? Não dá para desfazer.`,
-      )
-    ) {
+    const confirmou = await confirmar({
+      titulo: `Excluir a lista "${atual.name}"?`,
+      mensagem:
+        'A lista e todos os produtos dela serão apagados. Não dá para desfazer.',
+      textoConfirmar: 'Excluir lista',
+      perigoso: true,
+    })
+
+    if (!confirmou) {
       return
     }
 
@@ -411,11 +417,13 @@ function ListDetail() {
       return
     }
 
-    if (
-      !window.confirm(
-        'Concluir esta compra? Ela vai para o histórico com o total gasto.',
-      )
-    ) {
+    const confirmou = await confirmar({
+      titulo: 'Concluir esta compra?',
+      mensagem: `Total de ${formatarMoeda(total)}. A compra vai para o histórico, e os preços entram na sua média.`,
+      textoConfirmar: 'Concluir compra',
+    })
+
+    if (!confirmou) {
       return
     }
 
