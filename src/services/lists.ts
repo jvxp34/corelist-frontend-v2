@@ -1,5 +1,6 @@
 import API_URL from '../api/api'
 import { apiFetch } from '../api/cliente'
+import type { OrigemDosDados } from './products'
 
 export interface List {
   id: number
@@ -313,7 +314,7 @@ export interface Promotion {
   brand: string
   package_size: string
   image_url: string
-  data_source: 'manual' | 'openfoodfacts'
+  data_source: OrigemDosDados
   current_price: number | string
   historical_average: number | string
   savings: number | string

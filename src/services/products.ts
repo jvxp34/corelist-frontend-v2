@@ -1,7 +1,19 @@
 import API_URL from '../api/api'
 import { apiFetch } from '../api/cliente'
 
-export type OrigemDosDados = 'manual' | 'openfoodfacts'
+// De onde vieram nome, marca, embalagem e foto do produto.
+export type OrigemDosDados =
+  | 'manual'
+  | 'openfoodfacts'
+  | 'openbeautyfacts'
+  | 'openproductsfacts'
+
+export const NOME_DA_ORIGEM: Record<OrigemDosDados, string> = {
+  manual: 'cadastro manual',
+  openfoodfacts: 'Open Food Facts',
+  openbeautyfacts: 'Open Beauty Facts',
+  openproductsfacts: 'Open Products Facts',
+}
 
 export interface Product {
   id: number

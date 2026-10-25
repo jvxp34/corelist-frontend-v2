@@ -21,7 +21,7 @@ interface Oferta {
   marca: string
   embalagem: string
   foto: string
-  doOpenFoodFacts: boolean
+  origem: Promotion['data_source']
   quantidade: number
   precoAtual: number
   mediaHistorica: number
@@ -45,7 +45,7 @@ function paraOferta(promocao: Promotion): Oferta {
     marca: promocao.brand ?? '',
     embalagem: promocao.package_size ?? '',
     foto: promocao.image_url ?? '',
-    doOpenFoodFacts: promocao.data_source === 'openfoodfacts',
+    origem: promocao.data_source,
     quantidade,
     precoAtual,
     mediaHistorica,
@@ -296,11 +296,11 @@ function Promotions() {
             mais precisa fica a comparação.
           </p>
 
-          {lista.some((oferta) => oferta.doOpenFoodFacts) && (
-            <div className="mt-2">
-              <CreditoOpenFoodFacts />
-            </div>
-          )}
+          <div className="mt-2">
+            <CreditoOpenFoodFacts
+              origens={lista.map((oferta) => oferta.origem)}
+            />
+          </div>
         </>
       )}
     </div>

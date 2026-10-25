@@ -6,6 +6,7 @@ import {
   criarProduto,
   removerProduto,
   buscarPorCodigoDeBarras,
+  NOME_DA_ORIGEM,
   type OrigemDosDados,
   type Product,
 } from '../services/products'
@@ -141,7 +142,7 @@ function Products() {
       setOrigemDados(sugestao.data_source)
       setAvisoBusca({
         tipo: 'ok',
-        texto: 'Produto encontrado no Open Food Facts. Confira os dados e cadastre.',
+        texto: `Produto encontrado no ${NOME_DA_ORIGEM[sugestao.data_source]}. Confira os dados e cadastre.`,
       })
     } catch (error) {
       setAvisoBusca({
@@ -261,10 +262,11 @@ function Products() {
           : a.localeCompare(b, 'pt-BR'),
   )
 
-  const temDadosDoOpenFoodFacts =
-    (produtos ?? []).some(
-      (produto) => produto.data_source === 'openfoodfacts',
-    ) || origemDados === 'openfoodfacts'
+  // Bases externas usadas na tela (para o crédito exigido pela licença).
+  const origensNaTela: OrigemDosDados[] = [
+    ...(produtos ?? []).map((produto) => produto.data_source),
+    origemDados,
+  ]
 
 
   const corAviso = {
@@ -580,11 +582,9 @@ function Products() {
       )}
 
 
-      {temDadosDoOpenFoodFacts && (
-        <div className="mt-6">
-          <CreditoOpenFoodFacts />
-        </div>
-      )}
+      <div className="mt-6">
+        <CreditoOpenFoodFacts origens={origensNaTela} />
+      </div>
     </div>
   )
 }
