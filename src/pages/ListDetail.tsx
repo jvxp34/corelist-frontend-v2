@@ -24,6 +24,7 @@ import {
 } from '../services/products'
 import {
   detalhesDoProduto,
+  embalagemDoProduto,
   formatarData,
   formatarMoeda,
   formatarQuantidade,
@@ -510,6 +511,13 @@ function ListDetail() {
     (item) => item.price === null,
   ).length
 
+  const produtoEscolhido = produtos.find(
+    (produto) => String(produto.id) === produtoSelecionado,
+  )
+  const embalagemSelecionada = produtoEscolhido
+    ? embalagemDoProduto(produtoEscolhido)
+    : undefined
+
   const situacao = situacaoDoOrcamento(
     total,
     lista.budget,
@@ -547,6 +555,9 @@ function ListDetail() {
               rotulo="Quantidade"
               valor={quantidadeEdicao}
               aoMudar={setQuantidadeEdicao}
+              embalagem={
+                produto ? embalagemDoProduto(produto) : undefined
+              }
             />
 
             <label className={ROTULO}>
@@ -929,6 +940,7 @@ function ListDetail() {
               rotulo="Quantidade"
               valor={quantidade}
               aoMudar={setQuantidade}
+              embalagem={embalagemSelecionada}
             />
 
             <label className={ROTULO}>
