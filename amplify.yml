@@ -1,6 +1,8 @@
 # Build do frontend no AWS Amplify Hosting.
-# A variável VITE_API_URL é definida no console do Amplify
-# (ex.: https://54-207-10-20.sslip.io/api).
+# A variável VITE_API_URL é definida no console do Amplify como /api.
+# Uma regra de reescrita (200) no console repassa /api/<*> para o backend,
+# assim o navegador só fala com o Amplify (firewalls que bloqueiam o
+# sslip.io não atrapalham). Veja docs/PUBLICACAO_AWS.md.
 version: 1
 frontend:
   phases:
