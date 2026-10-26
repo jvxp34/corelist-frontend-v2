@@ -14,7 +14,7 @@ import {
   listarCategorias,
   type Category,
 } from '../services/categories'
-import { formatarMoeda } from '../utils/formatar'
+import { embalagemDoProduto, formatarMoeda } from '../utils/formatar'
 import CreditoOpenFoodFacts from '../components/CreditoOpenFoodFacts'
 import { useUsuario } from '../hooks/useUsuario'
 import { useConfirmacao } from '../hooks/useConfirmacao'
@@ -532,10 +532,7 @@ function Products() {
 
               <ul className="divide-y divide-slate-100 overflow-hidden rounded-2xl border border-line bg-white">
                 {itens.map((produto) => {
-                  const detalhes = [
-                    produto.package_size,
-                    produto.unit,
-                  ].filter(Boolean)
+                  const embalagem = embalagemDoProduto(produto)
 
                   return (
                     <li
@@ -551,9 +548,9 @@ function Products() {
                         <p className="truncate font-semibold">
                           {produto.name}
                         </p>
-                        {detalhes.length > 0 && (
+                        {embalagem && (
                           <p className="truncate text-sm text-muted">
-                            {detalhes.join(' · ')}
+                            {embalagem}
                           </p>
                         )}
                       </div>

@@ -19,6 +19,28 @@ export function formatarQuantidade(valor: number | string) {
 }
 
 
+// Embalagem do produto ("5 kg"). Os produtos de exemplo guardam isso em
+// `unit`; os cadastrados pelo código de barras, em `package_size`.
+export function embalagemDoProduto(produto: {
+  package_size?: string
+  unit?: string
+}) {
+  return (produto.package_size || produto.unit || '').trim()
+}
+
+
+// "Camil · 5 kg": marca e embalagem, o que existir.
+export function detalhesDoProduto(produto: {
+  brand?: string
+  package_size?: string
+  unit?: string
+}) {
+  return [produto.brand?.trim(), embalagemDoProduto(produto)]
+    .filter(Boolean)
+    .join(' · ')
+}
+
+
 // A partir desta fração do orçamento usado, avisamos que está perto do limite.
 export const LIMITE_ALERTA_ORCAMENTO = 0.9
 

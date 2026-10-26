@@ -23,6 +23,7 @@ import {
   type Product,
 } from '../services/products'
 import {
+  detalhesDoProduto,
   formatarData,
   formatarMoeda,
   formatarQuantidade,
@@ -30,6 +31,7 @@ import {
   textoDoSaldo,
 } from '../utils/formatar'
 import { useConfirmacao } from '../hooks/useConfirmacao'
+import CampoQuantidade from '../components/CampoQuantidade'
 
 
 const BOTAO_PRINCIPAL =
@@ -178,7 +180,7 @@ function ListDetail() {
   ) {
     event.preventDefault()
 
-    const novaQuantidade = Number(quantidade)
+    const novaQuantidade = Number(quantidade.replace(',', '.'))
 
     if (!produtoSelecionado) {
       setErro('Escolha um produto.')
@@ -243,7 +245,7 @@ function ListDetail() {
 
   function iniciarEdicaoItem(item: ListItem) {
     setItemEditando(item.id)
-    setQuantidadeEdicao(String(Number(item.quantity)))
+    setQuantidadeEdicao(String(Number(item.quantity)).replace('.', ','))
     setPrecoEdicao(
       item.price === null
         ? ''
@@ -261,7 +263,7 @@ function ListDetail() {
 
 
   async function salvarEdicaoItem(item: ListItem) {
-    const novaQuantidade = Number(quantidadeEdicao)
+    const novaQuantidade = Number(quantidadeEdicao.replace(',', '.'))
 
     if (
       quantidadeEdicao === '' ||
@@ -529,6 +531,7 @@ function ListDetail() {
       (atual) => atual.id === item.product,
     )
     const qtd = formatarQuantidade(item.quantity)
+    const detalhes = produto ? detalhesDoProduto(produto) : ''
 
     if (itemEditando === item.id) {
       return (
@@ -539,20 +542,12 @@ function ListDetail() {
           <p className="font-semibold">{nome}</p>
 
           <div className="mt-3 grid grid-cols-2 gap-3">
-            <label className={ROTULO}>
-              Quantidade
-              <input
-                type="number"
-                min="0.01"
-                step="0.01"
-                inputMode="decimal"
-                value={quantidadeEdicao}
-                onChange={(event) =>
-                  setQuantidadeEdicao(event.target.value)
-                }
-                className={CAMPO}
-              />
-            </label>
+            <CampoQuantidade
+              id={`quantidade-${item.id}`}
+              rotulo="Quantidade"
+              valor={quantidadeEdicao}
+              aoMudar={setQuantidadeEdicao}
+            />
 
             <label className={ROTULO}>
               Preço por unidade (R$)
@@ -633,10 +628,9 @@ function ListDetail() {
           />
 
           <span className="min-w-0">
-            {produto?.brand && (
+            {detalhes && (
               <span className="block truncate text-[11px] font-semibold uppercase tracking-wide text-muted">
-                {produto.brand}
-                {produto.package_size && ` · ${produto.package_size}`}
+                {detalhes}
               </span>
             )}
 
@@ -652,7 +646,9 @@ function ListDetail() {
 
             <span className="block text-sm text-muted">
               {item.price === null
-                ? `${qtd} un.`
+                ? Number.isInteger(Number(item.quantity))
+                  ? `${qtd} un.`
+                  : qtd
                 : `${qtd} × ${formatarMoeda(Number(item.price))}`}
             </span>
           </span>
@@ -896,7 +892,7 @@ function ListDetail() {
             Adicionar produto
           </h2>
 
-          <div className="mt-4 grid gap-4 sm:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)]">
+          <div className="mt-4 grid gap-4 sm:grid-cols-[minmax(0,2fr)_9.5rem_minmax(0,1fr)]">
             <label className={ROTULO}>
               Produto
               <select
@@ -911,31 +907,29 @@ function ListDetail() {
                   Escolha um produto
                 </option>
 
-                {produtos.map((produto) => (
-                  <option
-                    key={produto.id}
-                    value={produto.id}
-                  >
-                    {produto.name}
-                  </option>
-                ))}
+                {produtos.map((produto) => {
+                  const detalhes = detalhesDoProduto(produto)
+
+                  return (
+                    <option
+                      key={produto.id}
+                      value={produto.id}
+                    >
+                      {detalhes
+                        ? `${produto.name} — ${detalhes}`
+                        : produto.name}
+                    </option>
+                  )
+                })}
               </select>
             </label>
 
-            <label className={ROTULO}>
-              Quantidade
-              <input
-                type="number"
-                min="0.01"
-                step="0.01"
-                inputMode="decimal"
-                value={quantidade}
-                onChange={(event) =>
-                  setQuantidade(event.target.value)
-                }
-                className={CAMPO}
-              />
-            </label>
+            <CampoQuantidade
+              id="quantidade-novo"
+              rotulo="Quantidade"
+              valor={quantidade}
+              aoMudar={setQuantidade}
+            />
 
             <label className={ROTULO}>
               Preço (R$){' '}
