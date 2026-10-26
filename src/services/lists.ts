@@ -15,11 +15,15 @@ export interface List {
   total?: number | string
 }
 
+// Por unidade (2 pacotes) ou por peso (1,5 kg; o preço vira o do kg).
+export type Medida = 'unit' | 'kg'
+
 export interface ListItem {
   id: number
   list: number
   product: number
   quantity: number | string
+  measure: Medida
   price: number | string | null
   subtotal: number | string | null
   is_completed: boolean
@@ -93,6 +97,7 @@ export async function adicionarItemNaLista(
   item: {
     product: number
     quantity: number
+    measure?: Medida
     price?: number | null
   },
 ): Promise<ListItem> {
@@ -117,6 +122,7 @@ export async function atualizarItemDaLista(
   itemId: number,
   dados: {
     quantity?: number
+    measure?: Medida
     price?: number | null
     is_completed?: boolean
   },

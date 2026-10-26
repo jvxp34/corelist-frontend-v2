@@ -1,5 +1,6 @@
 import { Minus, Plus } from 'lucide-react'
 
+import type { Medida } from '../services/lists'
 import { formatarQuantidade } from '../utils/formatar'
 
 interface Props {
@@ -10,6 +11,22 @@ interface Props {
   autoFocus?: boolean
   // Embalagem do produto ("5 kg"), para mostrar "2 × 5 kg" embaixo.
   embalagem?: string
+  medida: Medida
+  aoMudarMedida: (medida: Medida) => void
+}
+
+const OPCOES: { valor: Medida; rotulo: string }[] = [
+  { valor: 'unit', rotulo: 'Unidade' },
+  { valor: 'kg', rotulo: 'Peso (kg)' },
+]
+
+// O banco guarda 2 casas decimais.
+function arredondar(valor: number) {
+  return Math.round(valor * 100) / 100
+}
+
+function paraTexto(valor: number) {
+  return String(arredondar(valor)).replace('.', ',')
 }
 
 // Quantidade de 1 em 1 com − e +. Dá para digitar decimal (1,5 kg).
@@ -20,30 +37,40 @@ function CampoQuantidade({
   aoMudar,
   autoFocus,
   embalagem,
+  medida,
+  aoMudarMedida,
 }: Props) {
+  const porPeso = medida === 'kg'
+  // Unidade: de 1 em 1. Peso: de 100 g em 100 g.
+  const passo = porPeso ? 0.1 : 1
+  const minimo = porPeso ? 0.1 : 1
+
   const numero = Number(valor.replace(',', '.'))
   const atual = Number.isFinite(numero) ? numero : 0
   const valido = valor.trim() !== '' && atual > 0
 
-  // O que está sendo contado: "2 × 5 kg" ou "2 un.".
+  // O que está sendo contado: "2 × 5 kg", "2 un." ou "1,5 kg".
   let dica = ''
   if (valido) {
     const qtd = formatarQuantidade(atual)
-    if (embalagem) {
+    if (porPeso) {
+      dica = `${qtd} kg`
+    } else if (embalagem) {
       dica = `${qtd} × ${embalagem}`
     } else if (Number.isInteger(atual)) {
       dica = `${qtd} un.`
     }
   }
 
+  // Vai para o múltiplo do passo seguinte: 2,5 → 2 (unidade); 1,25 → 1,2 (kg).
   function diminuir() {
-    // 2,5 → 2; 2 → 1; nunca abaixo de 1.
-    const proximo = Number.isInteger(atual) ? atual - 1 : Math.floor(atual)
-    aoMudar(String(Math.max(1, proximo)))
+    const proximo = Math.ceil(arredondar(atual / passo)) * passo - passo
+    aoMudar(paraTexto(Math.max(minimo, proximo)))
   }
 
   function aumentar() {
-    aoMudar(String(Math.floor(atual) + 1))
+    const proximo = Math.floor(arredondar(atual / passo)) * passo + passo
+    aoMudar(paraTexto(Math.max(minimo, proximo)))
   }
 
   const botao =
@@ -55,11 +82,38 @@ function CampoQuantidade({
         {rotulo}
       </label>
 
+      <div
+        role="radiogroup"
+        aria-label="Comprar por"
+        className="mt-1.5 grid grid-cols-2 gap-1 rounded-xl bg-canvas p-1"
+      >
+        {OPCOES.map((opcao) => {
+          const ativa = opcao.valor === medida
+
+          return (
+            <button
+              key={opcao.valor}
+              type="button"
+              role="radio"
+              aria-checked={ativa}
+              onClick={() => aoMudarMedida(opcao.valor)}
+              className={`h-9 rounded-lg text-sm font-semibold transition ${
+                ativa
+                  ? 'bg-white text-brand-700 shadow-sm ring-1 ring-line'
+                  : 'text-muted hover:text-ink'
+              }`}
+            >
+              {opcao.rotulo}
+            </button>
+          )
+        })}
+      </div>
+
       <div className="mt-1.5 flex items-center gap-2">
         <button
           type="button"
           onClick={diminuir}
-          disabled={atual <= 1}
+          disabled={atual <= minimo}
           aria-label="Diminuir quantidade"
           className={botao}
         >

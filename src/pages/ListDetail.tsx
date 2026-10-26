@@ -17,6 +17,7 @@ import {
   excluirLista,
   type List,
   type ListItem,
+  type Medida,
 } from '../services/lists'
 import {
   listarProdutos,
@@ -81,6 +82,8 @@ function ListDetail() {
   const [quantidade, setQuantidade] =
     useState('1')
 
+  const [medida, setMedida] = useState<Medida>('unit')
+
   const [preco, setPreco] = useState('')
 
   const [salvando, setSalvando] =
@@ -94,6 +97,9 @@ function ListDetail() {
 
   const [quantidadeEdicao, setQuantidadeEdicao] =
     useState('')
+
+  const [medidaEdicao, setMedidaEdicao] =
+    useState<Medida>('unit')
 
   const [precoEdicao, setPrecoEdicao] =
     useState('')
@@ -172,6 +178,7 @@ function ListDetail() {
     setMostrarFormulario(false)
     setProdutoSelecionado('')
     setQuantidade('1')
+    setMedida('unit')
     setPreco('')
   }
 
@@ -181,7 +188,8 @@ function ListDetail() {
   ) {
     event.preventDefault()
 
-    const novaQuantidade = Number(quantidade.replace(',', '.'))
+    const novaQuantidade =
+      Math.round(Number(quantidade.replace(',', '.')) * 100) / 100
 
     if (!produtoSelecionado) {
       setErro('Escolha um produto.')
@@ -207,6 +215,7 @@ function ListDetail() {
         {
           product: Number(produtoSelecionado),
           quantity: novaQuantidade,
+          measure: medida,
           price: preco === '' ? null : Number(preco),
         },
       )
@@ -247,6 +256,7 @@ function ListDetail() {
   function iniciarEdicaoItem(item: ListItem) {
     setItemEditando(item.id)
     setQuantidadeEdicao(String(Number(item.quantity)).replace('.', ','))
+    setMedidaEdicao(item.measure ?? 'unit')
     setPrecoEdicao(
       item.price === null
         ? ''
@@ -264,7 +274,8 @@ function ListDetail() {
 
 
   async function salvarEdicaoItem(item: ListItem) {
-    const novaQuantidade = Number(quantidadeEdicao.replace(',', '.'))
+    const novaQuantidade =
+      Math.round(Number(quantidadeEdicao.replace(',', '.')) * 100) / 100
 
     if (
       quantidadeEdicao === '' ||
@@ -289,6 +300,7 @@ function ListDetail() {
       substituirItem(
         await atualizarItemDaLista(listId, item.id, {
           quantity: novaQuantidade,
+          measure: medidaEdicao,
           price: novoPreco,
         }),
       )
@@ -539,7 +551,12 @@ function ListDetail() {
       (atual) => atual.id === item.product,
     )
     const qtd = formatarQuantidade(item.quantity)
-    const detalhes = produto ? detalhesDoProduto(produto) : ''
+    // Por peso, a embalagem do pacote ("1 kg") confunde: fica só a marca.
+    const detalhes = !produto
+      ? ''
+      : item.measure === 'kg'
+        ? produto.brand.trim()
+        : detalhesDoProduto(produto)
 
     if (itemEditando === item.id) {
       return (
@@ -558,10 +575,14 @@ function ListDetail() {
               embalagem={
                 produto ? embalagemDoProduto(produto) : undefined
               }
+              medida={medidaEdicao}
+              aoMudarMedida={setMedidaEdicao}
             />
 
             <label className={ROTULO}>
-              Preço por unidade (R$)
+              {medidaEdicao === 'kg'
+                ? 'Preço do kg (R$)'
+                : 'Preço por unidade (R$)'}
               <input
                 type="number"
                 min="0"
@@ -656,11 +677,15 @@ function ListDetail() {
             </span>
 
             <span className="block text-sm text-muted">
-              {item.price === null
-                ? Number.isInteger(Number(item.quantity))
-                  ? `${qtd} un.`
-                  : qtd
-                : `${qtd} × ${formatarMoeda(Number(item.price))}`}
+              {item.measure === 'kg'
+                ? item.price === null
+                  ? `${qtd} kg`
+                  : `${qtd} kg × ${formatarMoeda(Number(item.price))}/kg`
+                : item.price === null
+                  ? Number.isInteger(Number(item.quantity))
+                    ? `${qtd} un.`
+                    : qtd
+                  : `${qtd} × ${formatarMoeda(Number(item.price))}`}
             </span>
           </span>
         </label>
@@ -941,10 +966,12 @@ function ListDetail() {
               valor={quantidade}
               aoMudar={setQuantidade}
               embalagem={embalagemSelecionada}
+              medida={medida}
+              aoMudarMedida={setMedida}
             />
 
             <label className={ROTULO}>
-              Preço (R$){' '}
+              {medida === 'kg' ? 'Preço do kg (R$)' : 'Preço (R$)'}{' '}
               <span className="font-normal text-muted">
                 opcional
               </span>
