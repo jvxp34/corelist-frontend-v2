@@ -4,7 +4,6 @@ import {
   ShoppingBasket,
   Tag,
   ScanLine,
-  Users,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -24,5 +23,4 @@ export const itensDoMenu: ItemDeMenu[] = [
   { to: '/produtos', label: 'Produtos', labelCurto: 'Produtos', icon: ShoppingBasket },
   { to: '/promocoes', label: 'Produtos com menor preço', labelCurto: 'Menor preço', icon: Tag },
   { to: '/scanner', label: 'Ler nota fiscal', labelCurto: 'Ler nota', icon: ScanLine },
-  { to: '/grupos', label: 'Grupos', labelCurto: 'Grupos', icon: Users },
 ]

@@ -8,7 +8,6 @@ import Promotions from './pages/Promotions'
 import Scanner from './pages/Scanner'
 import Reports from './pages/Reports'
 import History from './pages/History'
-import Groups from './pages/Groups'
 import Profile from './pages/Profile'
 import ListDetail from './pages/ListDetail'
 import Register from './pages/Register'
@@ -73,11 +72,6 @@ function App() {
           <Route
             path="/historico"
             element={<History />}
-          />
-
-          <Route
-            path="/grupos"
-            element={<Groups />}
           />
 
           <Route
