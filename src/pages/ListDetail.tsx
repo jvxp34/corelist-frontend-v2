@@ -391,13 +391,23 @@ function ListDetail() {
 
 
   async function excluir(atual: List) {
-    const confirmou = await confirmar({
-      titulo: `Excluir a lista "${atual.name}"?`,
-      mensagem:
-        'A lista e todos os produtos dela serão apagados. Não dá para desfazer.',
-      textoConfirmar: 'Excluir lista',
-      perigoso: true,
-    })
+    const confirmou = await confirmar(
+      atual.is_completed
+        ? {
+            titulo: `Excluir a compra "${atual.name}"?`,
+            mensagem:
+              'A compra sai do histórico, e os preços dela deixam de contar em "Produtos com menor preço". Não dá para desfazer.',
+            textoConfirmar: 'Excluir compra',
+            perigoso: true,
+          }
+        : {
+            titulo: `Excluir a lista "${atual.name}"?`,
+            mensagem:
+              'A lista e todos os produtos dela serão apagados. Não dá para desfazer.',
+            textoConfirmar: 'Excluir lista',
+            perigoso: true,
+          },
+    )
 
     if (!confirmou) {
       return
@@ -411,7 +421,11 @@ function ListDetail() {
 
       navigate('/listas')
     } catch {
-      setErro('Não foi possível excluir a lista.')
+      setErro(
+        atual.is_completed
+          ? 'Não foi possível excluir a compra.'
+          : 'Não foi possível excluir a lista.',
+      )
       setSalvandoDados(false)
     }
   }
@@ -1092,6 +1106,19 @@ function ListDetail() {
                 : `Marque os ${faltam.length} produtos que faltam para concluir`}
             </p>
           )}
+        </div>
+      )}
+
+      {lista.is_completed && !editandoLista && (
+        <div className="mt-8 border-t border-line pt-4 text-center">
+          <button
+            type="button"
+            onClick={() => excluir(lista)}
+            disabled={salvandoDados}
+            className="h-11 rounded-xl px-4 text-[15px] font-semibold text-red-700 transition hover:bg-red-50 disabled:opacity-60"
+          >
+            Excluir compra
+          </button>
         </div>
       )}
     </div>
