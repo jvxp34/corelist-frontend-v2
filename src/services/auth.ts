@@ -161,6 +161,19 @@ export async function cadastrar(dados: {
 
 
 export function sair() {
+  const refresh = localStorage.getItem('refresh_token')
+
+  // Invalida a sessão também no servidor. Não espera a resposta: sair
+  // funciona mesmo sem internet.
+  if (refresh) {
+    fetch(`${API_URL}/auth/logout/`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ refresh }),
+      keepalive: true,
+    }).catch(() => {})
+  }
+
   localStorage.removeItem('access_token')
   localStorage.removeItem('refresh_token')
   usuarioEmAndamento = null

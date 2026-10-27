@@ -21,6 +21,11 @@ async function renovarToken(): Promise<string | null> {
     })
 
     if (!response.ok) {
+      // Outra aba pode ter renovado antes (o refresh usado aqui deixou de
+      // valer, mas o novo já está salvo): usa a sessão dela.
+      if (localStorage.getItem('refresh_token') !== refresh) {
+        return localStorage.getItem('access_token')
+      }
       return null
     }
 
