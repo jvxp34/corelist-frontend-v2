@@ -61,8 +61,9 @@ async function detalheDoErro(response: Response, padrao: string) {
 
 
 // Só links da Sefaz-AM: evita mandar ao servidor um QR code qualquer.
+// O QR code impresso usa http://; o servidor consulta sempre por https.
 export function pareceLinkDeNota(texto: string) {
-  return /^https:\/\/sistemas\.sefaz\.am\.gov\.br\/nfceweb\/consultarNFCe\.jsp\?/i
+  return /^https?:\/\/sistemas\.sefaz\.am\.gov\.br\/nfceweb\/consultarNFCe\.jsp\?/i
     .test(texto.trim())
 }
 
