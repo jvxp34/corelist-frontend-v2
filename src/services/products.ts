@@ -7,12 +7,14 @@ export type OrigemDosDados =
   | 'openfoodfacts'
   | 'openbeautyfacts'
   | 'openproductsfacts'
+  | 'nfce'
 
 export const NOME_DA_ORIGEM: Record<OrigemDosDados, string> = {
   manual: 'cadastro manual',
   openfoodfacts: 'Open Food Facts',
   openbeautyfacts: 'Open Beauty Facts',
   openproductsfacts: 'Open Products Facts',
+  nfce: 'nota fiscal',
 }
 
 export interface Product {

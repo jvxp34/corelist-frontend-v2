@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Search, Trash2 } from 'lucide-react'
+import { ScanBarcode, Search, Trash2 } from 'lucide-react'
 
 import {
   listarProdutos,
@@ -16,6 +16,7 @@ import {
 } from '../services/categories'
 import { embalagemDoProduto, formatarMoeda } from '../utils/formatar'
 import CreditoOpenFoodFacts from '../components/CreditoOpenFoodFacts'
+import LeitorDeCodigo from '../components/LeitorDeCodigo'
 import { useUsuario } from '../hooks/useUsuario'
 import { useConfirmacao } from '../hooks/useConfirmacao'
 
@@ -68,6 +69,7 @@ function Products() {
   const [unidade, setUnidade] = useState('')
   const [salvando, setSalvando] = useState(false)
   const [buscando, setBuscando] = useState(false)
+  const [cameraAberta, setCameraAberta] = useState(false)
   const [avisoBusca, setAvisoBusca] =
     useState<AvisoBusca | null>(null)
 
@@ -110,8 +112,8 @@ function Products() {
   }
 
 
-  async function buscarCodigo() {
-    const codigoLimpo = codigo.replace(/\s/g, '')
+  async function buscarCodigo(valor = codigo) {
+    const codigoLimpo = valor.replace(/\s/g, '')
 
     if (codigoLimpo === '') {
       setAvisoBusca({
@@ -360,13 +362,23 @@ function Products() {
 
               <button
                 type="button"
-                onClick={buscarCodigo}
+                onClick={() => buscarCodigo()}
                 disabled={buscando}
                 className={BOTAO_SECUNDARIO}
               >
                 {buscando ? 'Buscando...' : 'Buscar'}
               </button>
             </div>
+
+            <button
+              type="button"
+              onClick={() => setCameraAberta(true)}
+              disabled={buscando}
+              className="mt-2 inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-brand-100 bg-brand-50 px-4 text-[15px] font-semibold text-brand-800 transition hover:bg-brand-100 disabled:opacity-60 sm:w-auto"
+            >
+              <ScanBarcode size={20} aria-hidden="true" />
+              Ler com a câmera
+            </button>
 
             {avisoBusca && (
               <p
@@ -588,6 +600,21 @@ function Products() {
       <div className="mt-6">
         <CreditoOpenFoodFacts origens={origensNaTela} />
       </div>
+
+      {cameraAberta && (
+        <LeitorDeCodigo
+          tipo="barras"
+          titulo="Ler código de barras"
+          dica="Aponte para o código de barras da embalagem."
+          aoFechar={() => setCameraAberta(false)}
+          aoLer={(texto) => {
+            setCameraAberta(false)
+            setCodigo(texto)
+            setAvisoBusca(null)
+            buscarCodigo(texto)
+          }}
+        />
+      )}
     </div>
   )
 }
