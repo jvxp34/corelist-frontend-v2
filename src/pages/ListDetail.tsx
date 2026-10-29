@@ -23,6 +23,7 @@ import {
 import {
   listarProdutos,
   type Product,
+  type ProdutoEncontrado,
 } from '../services/products'
 import {
   detalhesDoProduto,
@@ -34,6 +35,7 @@ import {
   textoDoSaldo,
 } from '../utils/formatar'
 import { useConfirmacao } from '../hooks/useConfirmacao'
+import BuscaDeProduto from '../components/BuscaDeProduto'
 import CampoQuantidade from '../components/CampoQuantidade'
 
 
@@ -79,6 +81,9 @@ function ListDetail() {
 
   const [produtoSelecionado, setProdutoSelecionado] =
     useState('')
+
+  const [produtoBuscado, setProdutoBuscado] =
+    useState<ProdutoEncontrado | null>(null)
 
   const [quantidade, setQuantidade] =
     useState('1')
@@ -178,9 +183,30 @@ function ListDetail() {
   function fecharFormulario() {
     setMostrarFormulario(false)
     setProdutoSelecionado('')
+    setProdutoBuscado(null)
     setQuantidade('1')
     setMedida('unit')
     setPreco('')
+  }
+
+
+  // Ao escolher, já sugere o último preço pago e a medida usada.
+  function escolherProduto(produto: ProdutoEncontrado | null) {
+    setProdutoBuscado(produto)
+    setProdutoSelecionado(produto ? String(produto.id) : '')
+
+    if (!produto) {
+      return
+    }
+    if (produto.ultimo_preco) {
+      setPreco(String(Number(produto.ultimo_preco)))
+    }
+    if (produto.ultima_medida) {
+      setMedida(produto.ultima_medida)
+    }
+    if (!produtos.some((atual) => atual.id === produto.id)) {
+      listarProdutos().then(setProdutos).catch(() => {})
+    }
   }
 
 
@@ -993,37 +1019,17 @@ function ListDetail() {
             Adicionar produto
           </h2>
 
-          <div className="mt-4 grid gap-4 sm:grid-cols-[minmax(0,2fr)_9.5rem_minmax(0,1fr)]">
-            <label className={ROTULO}>
+          <div className="mt-4 grid gap-4 sm:grid-cols-[9.5rem_minmax(0,1fr)]">
+            <div className={`${ROTULO} sm:col-span-2`}>
               Produto
-              <select
-                value={produtoSelecionado}
-                onChange={(event) =>
-                  setProdutoSelecionado(event.target.value)
+              <BuscaDeProduto
+                escolhido={produtoBuscado}
+                aoEscolher={escolherProduto}
+                aoCriar={(novo) =>
+                  setProdutos((atuais) => [...atuais, novo])
                 }
-                autoFocus
-                className={CAMPO}
-              >
-                <option value="">
-                  Escolha um produto
-                </option>
-
-                {produtos.map((produto) => {
-                  const detalhes = detalhesDoProduto(produto)
-
-                  return (
-                    <option
-                      key={produto.id}
-                      value={produto.id}
-                    >
-                      {detalhes
-                        ? `${produto.name} — ${detalhes}`
-                        : produto.name}
-                    </option>
-                  )
-                })}
-              </select>
-            </label>
+              />
+            </div>
 
             <CampoQuantidade
               id="quantidade-novo"

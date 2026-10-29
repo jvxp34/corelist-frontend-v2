@@ -155,3 +155,33 @@ export async function removerProduto(id: number): Promise<void> {
     )
   }
 }
+
+
+// Resultado da busca para adicionar à lista (GET lists/produtos/?q=).
+export interface ProdutoEncontrado {
+  id: number
+  name: string
+  brand: string
+  embalagem: string
+  // Último preço que a pessoa pagou neste produto.
+  ultimo_preco: string | null
+  ultima_medida: 'unit' | 'kg' | null
+  vezes: number
+}
+
+// Sem texto, devolve os produtos que a pessoa mais compra.
+export async function buscarProdutosParaLista(
+  texto: string,
+  sinal?: AbortSignal,
+): Promise<ProdutoEncontrado[]> {
+  const response = await apiFetch(
+    `${API_URL}/lists/produtos/?q=${encodeURIComponent(texto)}`,
+    { method: 'GET', headers: getAuthHeaders(), signal: sinal },
+  )
+
+  if (!response.ok) {
+    throw new Error('Não foi possível buscar os produtos.')
+  }
+
+  return response.json()
+}
