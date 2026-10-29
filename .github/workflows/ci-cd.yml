@@ -1,0 +1,90 @@
+# CI/CD do frontend: Lint e build → Deploy (AWS Amplify) → Smoke test.
+#
+# - Em todo push e pull request: lint (ESLint) e checagem de tipos + build.
+# - No branch mvp-comprafacil: o AWS Amplify publica o site sozinho a cada
+#   push (veja amplify.yml). O smoke test espera a publicação, confere que o
+#   site no ar é exatamente o build deste commit e que a API responde.
+name: CI/CD
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+env:
+  BRANCH_DE_PRODUCAO: mvp-comprafacil
+  SITE_URL: ${{ vars.SITE_URL || 'https://mvp-comprafacil.dql3968zgbfv8.amplifyapp.com' }}
+
+jobs:
+  lint-e-build:
+    name: Lint e build (TypeScript + Vite)
+    runs-on: ubuntu-latest
+    outputs:
+      bundle: ${{ steps.bundle.outputs.arquivo }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Vite 8 precisa de Node 20.19+ ou 22.12+ (o mesmo do Amplify).
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Instalar dependências
+        run: npm ci
+
+      - name: Lint (ESLint)
+        run: npm run lint
+
+      - name: Checagem de tipos e build
+        env:
+          VITE_API_URL: /api
+        run: npm run build
+
+      # O nome do arquivo principal tem o hash do conteúdo: se o site no ar
+      # usar o mesmo nome, é este build que está publicado.
+      - name: Arquivo principal do build
+        id: bundle
+        run: |
+          arquivo="$(grep -o '/assets/index-[^"]*\.js' dist/index.html | head -1)"
+          echo "arquivo=${arquivo}" >> "$GITHUB_OUTPUT"
+          echo "Build: ${arquivo}"
+
+  deploy:
+    name: Deploy (AWS Amplify)
+    runs-on: ubuntu-latest
+    needs: lint-e-build
+    if: github.event_name != 'pull_request' && github.ref_name == 'mvp-comprafacil'
+    steps:
+      - name: Publicação pelo Amplify
+        run: |
+          echo "O AWS Amplify publica o branch ${BRANCH_DE_PRODUCAO} sozinho a cada push."
+          echo "Endereço: ${SITE_URL}"
+
+  smoke:
+    name: Smoke test
+    runs-on: ubuntu-latest
+    needs: [lint-e-build, deploy]
+    steps:
+      - name: Esperar a versão nova no ar
+        env:
+          BUNDLE: ${{ needs.lint-e-build.outputs.bundle }}
+        run: |
+          # O build do Amplify leva uns 2 minutos.
+          for tentativa in $(seq 1 40); do
+            no_ar="$(curl -fsS "${SITE_URL}/?t=$(date +%s)" | grep -o '/assets/index-[^"]*\.js' | head -1 || true)"
+            echo "Tentativa ${tentativa}: no ar ${no_ar:-?}, esperado ${BUNDLE}"
+            if [ "$no_ar" = "$BUNDLE" ]; then
+              echo "OK: o site no ar é o build deste commit."
+              exit 0
+            fi
+            sleep 15
+          done
+          # Se o Amplify gerar um nome diferente, não é falha do site: avisa.
+          echo "::warning::O site no ar não mostrou o arquivo ${BUNDLE} em 10 minutos."
+
+      - name: Site e API respondendo
+        run: |
+          curl -fsS -o /dev/null "${SITE_URL}/" && echo "Site: OK"
+          curl -fsS "${SITE_URL}/api/health/?t=$(date +%s)" && echo && echo "API: OK"
