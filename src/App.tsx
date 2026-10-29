@@ -10,6 +10,7 @@ import Reports from './pages/Reports'
 import History from './pages/History'
 import Profile from './pages/Profile'
 import ListDetail from './pages/ListDetail'
+import NotaNaLista from './pages/NotaNaLista'
 import Register from './pages/Register'
 
 import MainLayout from './layouts/MainLayout'
@@ -37,6 +38,11 @@ function App() {
           <Route
           path="/listas/:id"
           element={<ListDetail />}
+          />
+
+          <Route
+            path="/listas/:id/nota"
+            element={<NotaNaLista />}
           />
 
           <Route

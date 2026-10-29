@@ -4,10 +4,11 @@ import {
   useNavigate,
   useParams,
 } from 'react-router-dom'
-import { ChevronLeft } from 'lucide-react'
+import { ChevronLeft, QrCode } from 'lucide-react'
 
 import {
   listarListas,
+  criarLista,
   listarItensDaLista,
   adicionarItemNaLista,
   atualizarItemDaLista,
@@ -431,6 +432,46 @@ function ListDetail() {
   }
 
 
+  // Cria a lista "Próxima compra" com os produtos não comprados.
+  async function passarParaProximaLista() {
+    const naoComprados = itens.filter((item) => !item.is_completed)
+    if (naoComprados.length === 0) {
+      return
+    }
+
+    const confirmou = await confirmar({
+      titulo: 'Passar para a próxima lista?',
+      mensagem:
+        naoComprados.length === 1
+          ? 'O produto não comprado vai para uma lista nova, "Próxima compra".'
+          : `Os ${naoComprados.length} produtos não comprados vão para uma lista nova, "Próxima compra".`,
+      textoConfirmar: 'Criar a lista',
+    })
+
+    if (!confirmou) {
+      return
+    }
+
+    try {
+      setSalvandoDados(true)
+      setErro('')
+      const nova = await criarLista({ name: 'Próxima compra', budget: null })
+      for (const item of naoComprados) {
+        await adicionarItemNaLista(nova.id, {
+          product: item.product,
+          quantity: Number(item.quantity),
+          measure: item.measure,
+        })
+      }
+      navigate(`/listas/${nova.id}`)
+    } catch {
+      setErro('Não foi possível criar a próxima lista.')
+    } finally {
+      setSalvandoDados(false)
+    }
+  }
+
+
   async function finalizarCompra() {
     if (itens.length === 0) {
       setErro(
@@ -470,11 +511,10 @@ function ListDetail() {
   }
 
 
+  // Numa compra concluída, item desmarcado é "não comprado": pode ficar.
   function finalizarEdicao() {
-    if (itens.length === 0 || faltam.length > 0) {
-      setErro(
-        'Uma compra concluída precisa ter todos os produtos marcados.',
-      )
+    if (itens.length === 0) {
+      setErro('Uma compra concluída precisa ter pelo menos um produto.')
       return
     }
 
@@ -533,7 +573,8 @@ function ListDetail() {
     0,
   )
 
-  const semPreco = itens.filter(
+  // Em compra concluída, os não comprados não têm preço de propósito.
+  const semPreco = (lista.is_completed ? noCarrinho : itens).filter(
     (item) => item.price === null,
   ).length
 
@@ -645,11 +686,14 @@ function ListDetail() {
       )
     }
 
+    const naoComprado = lista?.is_completed && !item.is_completed
     const valor =
       item.price === null
         ? podeEditar
           ? '+ Preço'
-          : 'Sem preço'
+          : naoComprado
+            ? 'Não comprado'
+            : 'Sem preço'
         : formatarMoeda(Number(item.subtotal ?? 0))
 
     const corValor =
@@ -791,6 +835,13 @@ function ListDetail() {
             >
               + Adicionar produto
             </button>
+          )}
+
+          {!lista.is_completed && !mostrarFormulario && (
+            <Link to={`/listas/${listId}/nota`} className={BOTAO_SECUNDARIO}>
+              <QrCode size={18} aria-hidden="true" className="mr-2" />
+              Ler nota fiscal
+            </Link>
           )}
         </div>
       </div>
@@ -1032,7 +1083,8 @@ function ListDetail() {
           </p>
 
           <p className="mt-1 text-sm text-muted">
-            Adicione o que você precisa comprar.
+            Adicione o que você precisa comprar. Sem tempo? Compre e depois
+            leia a nota fiscal: os produtos entram sozinhos.
           </p>
         </div>
       ) : (
@@ -1042,9 +1094,22 @@ function ListDetail() {
               aria-label="Falta pegar"
               className="mt-6"
             >
-              <h2 className="mb-2 px-1 text-xs font-semibold uppercase tracking-wider text-muted">
-                Falta pegar · {faltam.length}
-              </h2>
+              <div className="mb-2 flex items-center justify-between gap-3 px-1">
+                <h2 className="text-xs font-semibold uppercase tracking-wider text-muted">
+                  {lista.is_completed ? 'Não comprados' : 'Falta pegar'} · {faltam.length}
+                </h2>
+
+                {lista.is_completed && !editandoLista && (
+                  <button
+                    type="button"
+                    onClick={passarParaProximaLista}
+                    disabled={salvandoDados}
+                    className="text-sm font-semibold text-brand-600 transition hover:text-brand-800 disabled:opacity-60"
+                  >
+                    Passar para a próxima lista
+                  </button>
+                )}
+              </div>
 
               <ul className="space-y-2">
                 {faltam.map(renderizarItem)}
@@ -1099,11 +1164,22 @@ function ListDetail() {
             </button>
           )}
 
-          {itens.length > 0 && faltam.length > 0 && (
+          {!lista.is_completed && itens.length > 0 && faltam.length > 0 && (
             <p className="mt-2 text-center text-sm text-muted">
               {faltam.length === 1
                 ? 'Marque o produto que falta para concluir'
                 : `Marque os ${faltam.length} produtos que faltam para concluir`}
+            </p>
+          )}
+
+          {!lista.is_completed && (
+            <p className="mt-2 text-center text-sm">
+              <Link
+                to={`/listas/${listId}/nota`}
+                className="font-semibold text-brand-600 hover:text-brand-800"
+              >
+                Já comprou? Concluir com a nota fiscal
+              </Link>
             </p>
           )}
         </div>

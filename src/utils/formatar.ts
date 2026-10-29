@@ -137,3 +137,28 @@ export function textoDoSaldo(situacao: SituacaoOrcamento) {
     ? `Passou ${formatarMoeda(-situacao.saldo)} do orçamento`
     : `Restam ${formatarMoeda(situacao.saldo)}`
 }
+
+
+// "SENDAS DISTRIBUIDORA S/A" -> "Sendas Distribuidora S/A" (nome da nota).
+export function nomeDaLoja(texto: string) {
+  return texto
+    .toLowerCase()
+    .replace(/(^|[\s/(-])(\p{L})/gu, (_, antes, letra) => antes + letra.toUpperCase())
+    .replace(/\b(Ltda|S\/A|Me|Epp)\b/g, (sigla) => sigla.toUpperCase())
+}
+
+
+// Data e hora da nota fiscal, no horário de Manaus: "23/10/2026, 14:28".
+export function dataHoraDaNota(iso: string | null) {
+  if (!iso) {
+    return ''
+  }
+  return new Date(iso).toLocaleString('pt-BR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    timeZone: 'America/Manaus',
+  })
+}

@@ -1,17 +1,21 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { QrCode, Trash2 } from 'lucide-react'
+import { Trash2 } from 'lucide-react'
 
-import LeitorDeCodigo from '../components/LeitorDeCodigo'
+import EntradaDaNota from '../components/EntradaDaNota'
 import {
   importarNota,
   lerNota,
   NotaJaImportada,
-  pareceLinkDeNota,
   type ItemDaNota,
   type NotaLida,
 } from '../services/nfce'
-import { formatarMoeda, formatarQuantidade } from '../utils/formatar'
+import {
+  dataHoraDaNota,
+  formatarMoeda,
+  formatarQuantidade,
+  nomeDaLoja,
+} from '../utils/formatar'
 
 
 const BOTAO_PRINCIPAL =
@@ -24,26 +28,8 @@ const CAMPO =
   'h-11 w-full rounded-xl border border-slate-300 bg-white px-3.5 text-[15px] outline-none transition focus:border-brand-600 focus:ring-2 focus:ring-brand-100'
 
 
-// "SENDAS DISTRIBUIDORA S/A" -> "Sendas Distribuidora S/A"
-function nomeBonito(texto: string) {
-  return texto
-    .toLowerCase()
-    .replace(/(^|[\s/(-])(\p{L})/gu, (_, antes, letra) => antes + letra.toUpperCase())
-    .replace(/\b(Ltda|S\/A|Me|Epp)\b/g, (sigla) => sigla.toUpperCase())
-}
-
 function dataDaNota(nota: NotaLida) {
-  if (!nota.emitida_em) {
-    return ''
-  }
-  return new Date(nota.emitida_em).toLocaleString('pt-BR', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    timeZone: 'America/Manaus',
-  })
+  return dataHoraDaNota(nota.emitida_em)
 }
 
 function nomePadrao(nota: NotaLida) {
@@ -54,7 +40,7 @@ function nomePadrao(nota: NotaLida) {
         timeZone: 'America/Manaus',
       })
     : ''
-  return `${nomeBonito(nota.loja) || 'Compra'} ${dia}`.trim()
+  return `${nomeDaLoja(nota.loja) || 'Compra'} ${dia}`.trim()
 }
 
 function descricaoDoItem(item: ItemDaNota) {
@@ -71,7 +57,6 @@ function descricaoDoItem(item: ItemDaNota) {
 function Scanner() {
   const navigate = useNavigate()
 
-  const [cameraAberta, setCameraAberta] = useState(false)
   const [link, setLink] = useState('')
   const [lendo, setLendo] = useState(false)
   const [erro, setErro] = useState('')
@@ -86,14 +71,6 @@ function Scanner() {
   async function ler(texto: string) {
     const linkLido = texto.trim()
     setErro('')
-
-    if (!pareceLinkDeNota(linkLido)) {
-      setErro(
-        'Este não parece ser o QR code de uma nota fiscal do Amazonas. ' +
-          'Use o QR code impresso no rodapé da nota.',
-      )
-      return
-    }
 
     try {
       setLendo(true)
@@ -192,67 +169,9 @@ function Scanner() {
             Registre uma compra com os preços que você pagou, sem digitar nada.
           </p>
 
-          <section className="mt-6 rounded-2xl border border-line bg-white p-5 sm:p-6">
-            <button
-              type="button"
-              onClick={() => {
-                setErro('')
-                setCameraAberta(true)
-              }}
-              disabled={lendo}
-              className={`${BOTAO_PRINCIPAL} w-full`}
-            >
-              <QrCode size={22} aria-hidden="true" />
-              Ler o QR code da nota
-            </button>
-
-            <p className="mt-2 text-center text-sm text-muted">
-              O QR code fica no rodapé da nota fiscal (NFC-e).
-            </p>
-
-            <div className="my-5 flex items-center gap-3 text-sm text-muted">
-              <span className="h-px flex-1 bg-line" />
-              ou cole o link do QR code
-              <span className="h-px flex-1 bg-line" />
-            </div>
-
-            <form
-              onSubmit={(evento) => {
-                evento.preventDefault()
-                ler(link)
-              }}
-              className="flex gap-2"
-            >
-              <label htmlFor="link-nota" className="sr-only">
-                Link da nota fiscal
-              </label>
-              <input
-                id="link-nota"
-                type="url"
-                inputMode="url"
-                autoComplete="off"
-                value={link}
-                onChange={(evento) => setLink(evento.target.value)}
-                placeholder="https://sistemas.sefaz.am.gov.br/..."
-                className={`${CAMPO} min-w-0 flex-1`}
-              />
-              <button
-                type="submit"
-                disabled={lendo || link.trim() === ''}
-                className={BOTAO_SECUNDARIO}
-              >
-                {lendo ? 'Lendo...' : 'Ler'}
-              </button>
-            </form>
-
-            {lendo && (
-              <p role="status" className="mt-4 text-center text-sm text-muted">
-                Consultando a nota na Sefaz...
-              </p>
-            )}
-
-            {avisoErro}
-          </section>
+          <div className="mt-6">
+            <EntradaDaNota aoLer={ler} lendo={lendo} erro={erro} aoErro={setErro} />
+          </div>
         </>
       )}
 
@@ -263,7 +182,7 @@ function Scanner() {
               Compra na nota
             </p>
             <h2 className="mt-1 font-display text-xl font-semibold">
-              {nomeBonito(nota.loja) || 'Loja'}
+              {nomeDaLoja(nota.loja) || 'Loja'}
             </h2>
             <p className="text-sm text-muted">{dataDaNota(nota)}</p>
 
@@ -382,19 +301,6 @@ function Scanner() {
         </>
       )}
 
-      {cameraAberta && (
-        <LeitorDeCodigo
-          tipo="qr"
-          titulo="Ler nota fiscal"
-          dica="Aponte para o QR code no rodapé da nota."
-          aoFechar={() => setCameraAberta(false)}
-          aoLer={(texto) => {
-            setCameraAberta(false)
-            setLink(texto)
-            ler(texto)
-          }}
-        />
-      )}
     </div>
   )
 }

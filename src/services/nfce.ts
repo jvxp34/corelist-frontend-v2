@@ -109,3 +109,97 @@ export async function importarNota(
 
   return response.json()
 }
+
+
+// --- Nota fiscal dentro de uma lista em andamento ------------------------
+
+export type MotivoDoVinculo =
+  | 'codigo_de_barras'
+  | 'aprendido'
+  | 'mesmo_nome'
+  | 'nome_parecido'
+
+export interface ItemDaNotaNaLista {
+  indice: number
+  nome: string
+  codigo_loja: string
+  medida: Medida
+  quantidade: string
+  preco: string
+  total: string
+  // Item da lista que o app ligou a este item da nota (null = fora da lista).
+  list_item: number | null
+  motivo: MotivoDoVinculo | null
+  // Para itens fora da lista: produto do catálogo que parece ser este.
+  produto_sugerido: { id: number; name: string; motivo: MotivoDoVinculo } | null
+}
+
+export interface ItemDaListaNaNota {
+  id: number
+  nome: string
+  quantidade: string
+  medida: Medida
+  preco: string | null
+}
+
+export interface CruzamentoDaNota {
+  chave: string
+  loja: string
+  endereco: string
+  emitida_em: string | null
+  total: string
+  orcamento: string | null
+  itens: ItemDaNotaNaLista[]
+  itens_lista: ItemDaListaNaNota[]
+  esquecidos: number[]
+  lista_importada: number | null
+}
+
+export interface EscolhaDoItem {
+  indice: number
+  list_item: number | null
+  produto: number | null
+  nome: string
+}
+
+
+export async function lerNotaNaLista(
+  listId: number,
+  link: string,
+): Promise<CruzamentoDaNota> {
+  const response = await apiFetch(`${API_URL}/lists/${listId}/nfce/ler/`, {
+    method: 'POST',
+    headers: CABECALHOS,
+    body: JSON.stringify({ link: link.trim() }),
+  })
+
+  if (!response.ok) {
+    throw new Error(await detalheDoErro(response, 'Não foi possível ler a nota.'))
+  }
+
+  return response.json()
+}
+
+
+export async function concluirComNota(
+  listId: number,
+  link: string,
+  itens: EscolhaDoItem[],
+): Promise<{ id: number; esquecidos: number[] }> {
+  const response = await apiFetch(`${API_URL}/lists/${listId}/nfce/concluir/`, {
+    method: 'POST',
+    headers: CABECALHOS,
+    body: JSON.stringify({ link: link.trim(), itens }),
+  })
+
+  if (response.status === 409) {
+    const dados = await response.json().catch(() => ({}))
+    throw new NotaJaImportada(dados.list_id ?? null)
+  }
+
+  if (!response.ok) {
+    throw new Error(await detalheDoErro(response, 'Não foi possível concluir a lista.'))
+  }
+
+  return response.json()
+}
