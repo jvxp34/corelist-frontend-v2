@@ -20,9 +20,9 @@ const OPCOES: { valor: Medida; rotulo: string }[] = [
   { valor: 'kg', rotulo: 'Peso (kg)' },
 ]
 
-// O banco guarda 2 casas decimais.
+// O banco guarda 3 casas decimais (gramas, no peso em kg).
 function arredondar(valor: number) {
-  return Math.round(valor * 100) / 100
+  return Math.round(valor * 1000) / 1000
 }
 
 function paraTexto(valor: number) {

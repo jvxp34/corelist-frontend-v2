@@ -190,7 +190,7 @@ function ListDetail() {
     event.preventDefault()
 
     const novaQuantidade =
-      Math.round(Number(quantidade.replace(',', '.')) * 100) / 100
+      Math.round(Number(quantidade.replace(',', '.')) * 1000) / 1000
 
     if (!produtoSelecionado) {
       setErro('Escolha um produto.')
@@ -276,7 +276,7 @@ function ListDetail() {
 
   async function salvarEdicaoItem(item: ListItem) {
     const novaQuantidade =
-      Math.round(Number(quantidadeEdicao.replace(',', '.')) * 100) / 100
+      Math.round(Number(quantidadeEdicao.replace(',', '.')) * 1000) / 1000
 
     if (
       quantidadeEdicao === '' ||
