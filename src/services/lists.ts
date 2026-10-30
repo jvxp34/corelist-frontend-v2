@@ -367,3 +367,22 @@ export async function concluirLista(
 
   return response.json()
 }
+// Cria a próxima lista com os produtos de uma compra (o preço pago vira o
+// preço planejado). Sem `itens`, o backend usa todos os itens comprados.
+export async function repetirCompra(
+  listId: number,
+  dados: { nome?: string; itens?: number[] },
+): Promise<List> {
+  const response = await apiFetch(`${API_URL}/lists/${listId}/repetir/`, {
+    method: 'POST',
+    headers: getAuthHeaders(),
+    body: JSON.stringify(dados),
+  })
+
+  if (!response.ok) {
+    const corpo = await response.json().catch(() => null)
+    throw new Error(corpo?.detail ?? 'Não foi possível criar a próxima lista.')
+  }
+
+  return response.json()
+}

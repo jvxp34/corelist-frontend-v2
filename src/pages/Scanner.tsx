@@ -1,8 +1,9 @@
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { Trash2 } from 'lucide-react'
 
 import EntradaDaNota from '../components/EntradaDaNota'
+import SugerirProximaLista from '../components/SugerirProximaLista'
 import {
   importarNota,
   lerNota,
@@ -55,7 +56,6 @@ function descricaoDoItem(item: ItemDaNota) {
 // Lê a nota fiscal (NFC-e) pelo QR code ou pelo link, mostra os itens para
 // conferir e salva como compra concluída.
 function Scanner() {
-  const navigate = useNavigate()
 
   const [link, setLink] = useState('')
   const [lendo, setLendo] = useState(false)
@@ -66,6 +66,7 @@ function Scanner() {
   const [nomeCompra, setNomeCompra] = useState('')
   const [salvando, setSalvando] = useState(false)
   const [jaImportada, setJaImportada] = useState<number | null>(null)
+  const [compraSalva, setCompraSalva] = useState<number | null>(null)
 
 
   async function ler(texto: string) {
@@ -132,7 +133,7 @@ function Scanner() {
           preco: item.preco,
         })),
       )
-      navigate(`/listas/${lista.id}`)
+      setCompraSalva(lista.id)
     } catch (falha) {
       if (falha instanceof NotaJaImportada) {
         setJaImportada(falha.listId)
@@ -155,6 +156,18 @@ function Scanner() {
       {erro}
     </div>
   )
+
+
+  if (compraSalva !== null) {
+    return (
+      <div className="mx-auto max-w-2xl">
+        <h1 className="font-display text-[28px] font-bold tracking-tight sm:text-[32px]">
+          Ler nota fiscal
+        </h1>
+        <SugerirProximaLista compraId={compraSalva} />
+      </div>
+    )
+  }
 
 
   return (

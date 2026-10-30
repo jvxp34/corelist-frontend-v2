@@ -1,8 +1,9 @@
 import { useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { Link, useParams } from 'react-router-dom'
 import { ChevronLeft, Trash2 } from 'lucide-react'
 
 import EntradaDaNota from '../components/EntradaDaNota'
+import SugerirProximaLista from '../components/SugerirProximaLista'
 import {
   concluirComNota,
   lerNotaNaLista,
@@ -52,7 +53,6 @@ function descricaoDoPreco(item: ItemDaNotaNaLista) {
 function NotaNaLista() {
   const { id } = useParams()
   const listId = Number(id)
-  const navigate = useNavigate()
 
   const [link, setLink] = useState('')
   const [lendo, setLendo] = useState(false)
@@ -61,6 +61,7 @@ function NotaNaLista() {
   const [escolhas, setEscolhas] = useState<Record<number, Escolha>>({})
   const [concluindo, setConcluindo] = useState(false)
   const [jaImportada, setJaImportada] = useState<number | null>(null)
+  const [concluida, setConcluida] = useState(false)
 
 
   async function ler(linkLido: string) {
@@ -130,7 +131,7 @@ function NotaNaLista() {
           }
         }),
       )
-      navigate(`/listas/${listId}`)
+      setConcluida(true)
     } catch (falha) {
       if (falha instanceof NotaJaImportada) {
         setJaImportada(falha.listId)
@@ -152,6 +153,15 @@ function NotaNaLista() {
       Voltar para a lista
     </Link>
   )
+
+
+  if (concluida) {
+    return (
+      <div className="mx-auto max-w-2xl">
+        <SugerirProximaLista compraId={listId} />
+      </div>
+    )
+  }
 
 
   if (!cruzamento) {
