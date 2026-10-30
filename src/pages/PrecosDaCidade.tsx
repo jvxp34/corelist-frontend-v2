@@ -2,15 +2,19 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ChevronDown, ChevronUp, Navigation, Search } from 'lucide-react'
 
+import AdicionarFoto from '../components/AdicionarFoto'
+import FotoProduto from '../components/FotoProduto'
+import LogoDaLoja from '../components/LogoDaLoja'
 import {
   buscarPrecos,
   linkComoChegar,
+  nomeDaLojaParaMostrar,
   type LojaDoPreco,
   type Periodo,
   type PrecoNaLoja,
   type ResumoDePreco,
 } from '../services/precos'
-import { formatarMoeda, nomeDaLoja, quandoFoi } from '../utils/formatar'
+import { formatarMoeda, quandoFoi } from '../utils/formatar'
 
 
 const PERIODOS: Periodo[] = [7, 30, 90]
@@ -27,7 +31,7 @@ function ComoChegar({ loja, pequeno = false }: { loja: LojaDoPreco; pequeno?: bo
       href={linkComoChegar(loja)}
       target="_blank"
       rel="noreferrer"
-      aria-label={`Como chegar em ${nomeDaLoja(loja.nome)}`}
+      aria-label={`Como chegar em ${nomeDaLojaParaMostrar(loja)}`}
       className={`inline-flex shrink-0 items-center gap-1.5 rounded-xl border border-brand-100 bg-brand-50 font-semibold text-brand-800 transition hover:bg-brand-100 ${
         pequeno ? 'h-9 px-2.5 text-xs' : 'h-10 px-3 text-sm'
       }`}
@@ -42,8 +46,9 @@ function ComoChegar({ loja, pequeno = false }: { loja: LojaDoPreco; pequeno?: bo
 function LinhaDaLoja({ linha }: { linha: PrecoNaLoja }) {
   return (
     <li className="flex items-center gap-3 py-2.5">
+      <LogoDaLoja loja={linha.loja} tamanho="sm" />
       <div className="min-w-0 flex-1">
-        <p className="truncate text-[15px] font-semibold">{nomeDaLoja(linha.loja.nome)}</p>
+        <p className="truncate text-[15px] font-semibold">{nomeDaLojaParaMostrar(linha.loja)}</p>
         {linha.loja.endereco && (
           <p className="truncate text-xs text-muted">{linha.loja.endereco}</p>
         )}
@@ -67,26 +72,51 @@ function LinhaDaLoja({ linha }: { linha: PrecoNaLoja }) {
 
 function CartaoDoProduto({ resumo }: { resumo: ResumoDePreco }) {
   const [aberto, setAberto] = useState(false)
-  const { produto, mais_barato_agora: agora, menor_no_periodo: menor } = resumo
+  const [produto, setProduto] = useState(resumo.produto)
+  const { mais_barato_agora: agora, menor_no_periodo: menor } = resumo
   const detalhes = [produto.brand, produto.embalagem].filter(Boolean).join(' · ')
 
   return (
     <li className="rounded-2xl border border-line bg-white p-4 sm:p-5">
-      <p className="font-semibold">{produto.name}</p>
-      {detalhes && <p className="text-sm text-muted">{detalhes}</p>}
+      <div className="flex items-start gap-3">
+        <FotoProduto url={produto.image_url} nome={produto.name} tamanho="md" />
+        <div className="min-w-0 flex-1">
+          <p className="font-semibold">{produto.name}</p>
+          {detalhes && <p className="text-sm text-muted">{detalhes}</p>}
+          {!produto.image_url && (
+            <div className="mt-1">
+              <AdicionarFoto
+                produtoId={produto.id}
+                nome={produto.name}
+                aoCompletar={(novo) =>
+                  setProduto({
+                    ...produto,
+                    brand: novo.brand,
+                    embalagem: (novo.package_size || novo.unit || '').trim(),
+                    image_url: novo.image_url,
+                  })
+                }
+              />
+            </div>
+          )}
+        </div>
+      </div>
 
       {agora ? (
         <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-xl bg-brand-50 p-3">
-          <div className="min-w-0">
-            <p className="text-xs font-semibold uppercase tracking-wide text-brand-800">
-              Mais barato agora
-            </p>
-            <p className="font-display text-2xl font-bold tabular-nums text-ink">
-              {precoComMedida(agora.preco, agora.medida)}
-            </p>
-            <p className="truncate text-sm text-ink">
-              {nomeDaLoja(agora.loja.nome)} · {quandoFoi(agora.data)}
-            </p>
+          <div className="flex min-w-0 items-center gap-3">
+            <LogoDaLoja loja={agora.loja} />
+            <div className="min-w-0">
+              <p className="text-xs font-semibold uppercase tracking-wide text-brand-800">
+                Mais barato agora
+              </p>
+              <p className="font-display text-2xl font-bold tabular-nums text-ink">
+                {precoComMedida(agora.preco, agora.medida)}
+              </p>
+              <p className="truncate text-sm text-ink">
+                {nomeDaLojaParaMostrar(agora.loja)} · {quandoFoi(agora.data)}
+              </p>
+            </div>
           </div>
           <ComoChegar loja={agora.loja} />
         </div>
@@ -100,7 +130,7 @@ function CartaoDoProduto({ resumo }: { resumo: ResumoDePreco }) {
         <p className="mt-3 text-sm text-muted">
           Menor preço em {menor.dias} dias:{' '}
           <span className="font-semibold text-ink">{precoComMedida(menor.preco, menor.medida)}</span>{' '}
-          no {nomeDaLoja(menor.loja.nome)} ({quandoFoi(menor.data)})
+          no {nomeDaLojaParaMostrar(menor.loja)} ({quandoFoi(menor.data)})
         </p>
       )}
 

@@ -185,3 +185,28 @@ export async function buscarProdutosParaLista(
 
   return response.json()
 }
+
+
+// Completa um produto (ex.: um que veio da nota fiscal) pelo código de barras
+// da embalagem: só preenche o que está vazio (foto, marca, embalagem).
+export async function completarPeloCodigo(
+  produtoId: number,
+  codigo: string,
+): Promise<{ produto: Product; encontrado: boolean }> {
+  const response = await apiFetch(
+    `${API_URL}/products/${produtoId}/codigo-de-barras/`,
+    {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ barcode: codigo }),
+    },
+  )
+
+  if (!response.ok) {
+    throw new Error(
+      await mensagemDeErro(response, 'Não foi possível usar este código de barras.'),
+    )
+  }
+
+  return response.json()
+}

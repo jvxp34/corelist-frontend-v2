@@ -1,6 +1,7 @@
 import API_URL from '../api/api'
 import { apiFetch } from '../api/cliente'
 import type { Medida } from './lists'
+import { nomeDaLoja } from '../utils/formatar'
 
 
 // Preços da cidade: vêm das notas fiscais importadas (só loja, preço e data;
@@ -8,7 +9,11 @@ import type { Medida } from './lists'
 
 export interface LojaDoPreco {
   id: number
+  // Razão social da nota ("SENDAS DISTRIBUIDORA S/A").
   nome: string
+  // Nome conhecido da rede ("Assaí Atacadista") e o ícone em /lojas/<icone>.png.
+  marca: string | null
+  icone: string | null
   endereco: string
 }
 
@@ -101,4 +106,10 @@ export function linkComoChegar(loja: LojaDoPreco) {
     dir_action: 'navigate',
   })
   return `https://www.google.com/maps/dir/?${parametros}`
+}
+
+
+// "Assaí Atacadista" quando a rede é conhecida; senão a razão social arrumada.
+export function nomeDaLojaParaMostrar(loja: LojaDoPreco) {
+  return loja.marca ?? nomeDaLoja(loja.nome)
 }

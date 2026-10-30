@@ -16,6 +16,7 @@ import {
 } from '../services/categories'
 import { embalagemDoProduto, formatarMoeda } from '../utils/formatar'
 import CreditoOpenFoodFacts from '../components/CreditoOpenFoodFacts'
+import AdicionarFoto from '../components/AdicionarFoto'
 import LeitorDeCodigo from '../components/LeitorDeCodigo'
 import { useUsuario } from '../hooks/useUsuario'
 import { useConfirmacao } from '../hooks/useConfirmacao'
@@ -564,6 +565,21 @@ function Products() {
                           <p className="truncate text-sm text-muted">
                             {embalagem}
                           </p>
+                        )}
+                        {!produto.image_url && !produto.barcode && (
+                          <div className="mt-1">
+                            <AdicionarFoto
+                              produtoId={produto.id}
+                              nome={produto.name}
+                              aoCompletar={(novo) =>
+                                setProdutos((atuais) =>
+                                  (atuais ?? []).map((atual) =>
+                                    atual.id === novo.id ? novo : atual,
+                                  ),
+                                )
+                              }
+                            />
+                          </div>
                         )}
                       </div>
 

@@ -29,7 +29,6 @@ import {
   detalhesDoProduto,
   embalagemDoProduto,
   formatarData,
-  nomeDaLoja,
   formatarMoeda,
   formatarQuantidade,
   situacaoDoOrcamento,
@@ -38,7 +37,11 @@ import {
 import { useConfirmacao } from '../hooks/useConfirmacao'
 import BuscaDeProduto from '../components/BuscaDeProduto'
 import MelhorLoja from '../components/MelhorLoja'
-import { obterPrecosDaLista, type PrecosDaLista } from '../services/precos'
+import {
+  nomeDaLojaParaMostrar,
+  obterPrecosDaLista,
+  type PrecosDaLista,
+} from '../services/precos'
 import CampoQuantidade from '../components/CampoQuantidade'
 
 
@@ -804,7 +807,7 @@ function ListDetail() {
 
             {maisBarato && !item.is_completed && (
               <span className="mt-0.5 block truncate text-xs font-medium text-brand-800">
-                Mais barato agora: {nomeDaLoja(maisBarato.loja.nome)} ·{' '}
+                Mais barato agora: {nomeDaLojaParaMostrar(maisBarato.loja)} ·{' '}
                 {formatarMoeda(Number(maisBarato.preco))}
                 {maisBarato.medida === 'kg' ? '/kg' : ''}
               </span>

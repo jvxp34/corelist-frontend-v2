@@ -1,7 +1,12 @@
 import { Navigation } from 'lucide-react'
 
-import { linkComoChegar, type PrecosDaLista } from '../services/precos'
-import { formatarMoeda, nomeDaLoja } from '../utils/formatar'
+import LogoDaLoja from './LogoDaLoja'
+import {
+  linkComoChegar,
+  nomeDaLojaParaMostrar,
+  type PrecosDaLista,
+} from '../services/precos'
+import { formatarMoeda } from '../utils/formatar'
 
 
 // Onde a lista inteira sai mais barata, pelos preços das notas fiscais.
@@ -19,18 +24,21 @@ function MelhorLoja({ precos }: { precos: PrecosDaLista }) {
       </p>
 
       <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
-        <div className="min-w-0">
-          <p className="truncate font-display text-lg font-semibold">
-            {nomeDaLoja(melhor.loja.nome)}
-          </p>
-          <p className="text-sm text-muted">
-            {formatarMoeda(Number(melhor.total))} · {melhor.itens} de{' '}
-            {precos.total_itens} itens com preço
-            {melhor.desatualizados > 0 &&
-              ` · ${melhor.desatualizados} ${
-                melhor.desatualizados === 1 ? 'preço pode ter mudado' : 'preços podem ter mudado'
-              }`}
-          </p>
+        <div className="flex min-w-0 items-center gap-3">
+          <LogoDaLoja loja={melhor.loja} />
+          <div className="min-w-0">
+            <p className="truncate font-display text-lg font-semibold">
+              {nomeDaLojaParaMostrar(melhor.loja)}
+            </p>
+            <p className="text-sm text-muted">
+              {formatarMoeda(Number(melhor.total))} · {melhor.itens} de{' '}
+              {precos.total_itens} itens com preço
+              {melhor.desatualizados > 0 &&
+                ` · ${melhor.desatualizados} ${
+                  melhor.desatualizados === 1 ? 'preço pode ter mudado' : 'preços podem ter mudado'
+                }`}
+            </p>
+          </div>
         </div>
         <a
           href={linkComoChegar(melhor.loja)}
@@ -47,7 +55,10 @@ function MelhorLoja({ precos }: { precos: PrecosDaLista }) {
         <ul className="mt-3 space-y-1 border-t border-slate-100 pt-3 text-sm text-muted">
           {outras.map((loja) => (
             <li key={loja.loja.id} className="flex justify-between gap-3">
-              <span className="truncate">{nomeDaLoja(loja.loja.nome)}</span>
+              <span className="flex min-w-0 items-center gap-2">
+                <LogoDaLoja loja={loja.loja} tamanho="sm" />
+                <span className="truncate">{nomeDaLojaParaMostrar(loja.loja)}</span>
+              </span>
               <span className="shrink-0 tabular-nums">
                 {formatarMoeda(Number(loja.total))} · {loja.itens} de {precos.total_itens}
               </span>
