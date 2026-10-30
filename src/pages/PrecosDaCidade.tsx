@@ -25,6 +25,15 @@ function precoComMedida(preco: string, medida: string) {
 }
 
 
+function maisBaratoVisto(lojas: PrecoNaLoja[]) {
+  if (lojas.length === 0) return null
+  const medida = lojas[0].medida
+  return lojas
+    .filter((linha) => linha.medida === medida)
+    .reduce((menor, linha) => (Number(linha.preco) < Number(menor.preco) ? linha : menor))
+}
+
+
 function ComoChegar({ loja, pequeno = false }: { loja: LojaDoPreco; pequeno?: boolean }) {
   return (
     <a
@@ -75,6 +84,9 @@ function CartaoDoProduto({ resumo }: { resumo: ResumoDePreco }) {
   const [produto, setProduto] = useState(resumo.produto)
   const { mais_barato_agora: agora, menor_no_periodo: menor } = resumo
   const detalhes = [produto.brand, produto.embalagem].filter(Boolean).join(' · ')
+  // Sem preço de hoje ou ontem: mostra o mais barato entre os últimos preços
+  // de cada loja (mesma medida), com o aviso de que pode ter mudado.
+  const visto = agora ? null : maisBaratoVisto(resumo.lojas)
 
   return (
     <li className="rounded-2xl border border-line bg-white p-4 sm:p-5">
@@ -120,11 +132,28 @@ function CartaoDoProduto({ resumo }: { resumo: ResumoDePreco }) {
           </div>
           <ComoChegar loja={agora.loja} />
         </div>
-      ) : (
-        <p className="mt-3 rounded-xl bg-canvas p-3 text-sm text-muted">
-          Ninguém registrou este produto hoje nem ontem. Os preços abaixo podem ter mudado.
-        </p>
-      )}
+      ) : visto ? (
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-xl bg-canvas p-3">
+          <div className="flex min-w-0 items-center gap-3">
+            <LogoDaLoja loja={visto.loja} />
+            <div className="min-w-0">
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted">
+                Mais barato visto por último
+              </p>
+              <p className="font-display text-2xl font-bold tabular-nums text-ink">
+                {precoComMedida(visto.preco, visto.medida)}
+              </p>
+              <p className="truncate text-sm text-ink">
+                {nomeDaLojaParaMostrar(visto.loja)} · {quandoFoi(visto.data)}
+                <span className="ml-1.5 rounded-full bg-slate-200 px-1.5 py-0.5 text-xs font-semibold text-slate-700">
+                  pode ter mudado
+                </span>
+              </p>
+            </div>
+          </div>
+          <ComoChegar loja={visto.loja} />
+        </div>
+      ) : null}
 
       {menor && (
         <p className="mt-3 text-sm text-muted">

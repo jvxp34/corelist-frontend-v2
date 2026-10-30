@@ -453,7 +453,7 @@ function ListDetail() {
         ? {
             titulo: `Excluir a compra "${atual.name}"?`,
             mensagem:
-              'A compra sai do histórico, e os preços dela deixam de contar em "Produtos com menor preço". Não dá para desfazer.',
+              'A compra sai do seu histórico e da sua média de preços. Os preços da nota fiscal continuam nos preços da cidade, sem o seu nome. Não dá para desfazer.',
             textoConfirmar: 'Excluir compra',
             perigoso: true,
           }
@@ -770,6 +770,7 @@ function ListDetail() {
         <label className="flex min-h-12 min-w-0 flex-1 cursor-pointer items-center gap-3">
           <input
             type="checkbox"
+            aria-label={`${item.is_completed ? 'Tirar do carrinho' : 'Marcar como pego'}: ${nome}`}
             checked={item.is_completed}
             onChange={() => alternarProduto(item)}
             disabled={!podeEditar || concluindo}
@@ -1189,7 +1190,7 @@ function ListDetail() {
 
       {/* Ação final: presa acima do menu inferior no celular. */}
       {(!lista.is_completed || editandoLista) && (
-        <div className="sticky bottom-[84px] z-20 mt-6 rounded-2xl border border-line bg-white p-4 shadow-lg shadow-slate-900/5 md:bottom-6">
+        <div className="sticky bottom-[84px] z-20 mt-6 rounded-2xl border border-line bg-white p-3 shadow-lg shadow-slate-900/5 sm:p-4 md:bottom-6">
           {lista.is_completed ? (
             <button
               type="button"
@@ -1212,16 +1213,12 @@ function ListDetail() {
               }
               className={`${BOTAO_PRINCIPAL} w-full`}
             >
-              {concluindo ? 'Concluindo...' : 'Concluir compra'}
+              {concluindo
+                ? 'Concluindo...'
+                : itens.length > 0 && faltam.length > 0
+                  ? `Concluir compra · ${faltam.length === 1 ? 'falta 1 produto' : `faltam ${faltam.length}`}`
+                  : 'Concluir compra'}
             </button>
-          )}
-
-          {!lista.is_completed && itens.length > 0 && faltam.length > 0 && (
-            <p className="mt-2 text-center text-sm text-muted">
-              {faltam.length === 1
-                ? 'Marque o produto que falta para concluir'
-                : `Marque os ${faltam.length} produtos que faltam para concluir`}
-            </p>
           )}
 
           {!lista.is_completed && (
