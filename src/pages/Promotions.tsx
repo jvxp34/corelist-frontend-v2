@@ -107,8 +107,15 @@ function Promotions() {
 
   return (
     <div className="mx-auto max-w-4xl">
-      <h1 className="font-display text-[28px] font-bold tracking-tight sm:text-[32px]">
-        Produtos com menor preço
+      <Link
+        to="/promocoes"
+        className="text-sm font-semibold text-muted transition hover:text-ink"
+      >
+        ‹ Preços da cidade
+      </Link>
+
+      <h1 className="mt-2 font-display text-[28px] font-bold tracking-tight sm:text-[32px]">
+        Mais barato que a sua média
       </h1>
 
       <p className="mt-1 max-w-2xl text-muted">

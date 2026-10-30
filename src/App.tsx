@@ -5,6 +5,7 @@ import Dashboard from './pages/Dashboard'
 import Lists from './pages/Lists'
 import Products from './pages/Products'
 import Promotions from './pages/Promotions'
+import PrecosDaCidade from './pages/PrecosDaCidade'
 import Scanner from './pages/Scanner'
 import Reports from './pages/Reports'
 import History from './pages/History'
@@ -62,6 +63,11 @@ function App() {
 
           <Route
             path="/promocoes"
+            element={<PrecosDaCidade />}
+          />
+
+          <Route
+            path="/promocoes/minhas"
             element={<Promotions />}
           />
 

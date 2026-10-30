@@ -29,6 +29,7 @@ import {
   detalhesDoProduto,
   embalagemDoProduto,
   formatarData,
+  nomeDaLoja,
   formatarMoeda,
   formatarQuantidade,
   situacaoDoOrcamento,
@@ -36,6 +37,8 @@ import {
 } from '../utils/formatar'
 import { useConfirmacao } from '../hooks/useConfirmacao'
 import BuscaDeProduto from '../components/BuscaDeProduto'
+import MelhorLoja from '../components/MelhorLoja'
+import { obterPrecosDaLista, type PrecosDaLista } from '../services/precos'
 import CampoQuantidade from '../components/CampoQuantidade'
 
 
@@ -84,6 +87,9 @@ function ListDetail() {
 
   const [produtoBuscado, setProdutoBuscado] =
     useState<ProdutoEncontrado | null>(null)
+
+  const [precosDaLista, setPrecosDaLista] =
+    useState<PrecosDaLista | null>(null)
 
   const [quantidade, setQuantidade] =
     useState('1')
@@ -167,6 +173,27 @@ function ListDetail() {
       cancelado = true
     }
   }, [listId])
+
+
+  // Preços da cidade para os itens da lista em andamento.
+  const listaAtiva = lista !== null && !lista.is_completed
+  const quantidadeDeItens = itens.length
+  useEffect(() => {
+    if (!listaAtiva) {
+      return
+    }
+    let cancelado = false
+    obterPrecosDaLista(listId)
+      .then((dados) => {
+        if (!cancelado) {
+          setPrecosDaLista(dados)
+        }
+      })
+      .catch(() => {})
+    return () => {
+      cancelado = true
+    }
+  }, [listId, listaAtiva, quantidadeDeItens])
 
 
   function substituirItem(itemAtualizado: ListItem) {
@@ -632,6 +659,9 @@ function ListDetail() {
       (atual) => atual.id === item.product,
     )
     const qtd = formatarQuantidade(item.quantity)
+    const maisBarato = precosDaLista?.itens.find(
+      (preco) => preco.item === item.id,
+    )?.mais_barato_agora
     // Por peso, a embalagem do pacote ("1 kg") confunde: fica só a marca.
     const detalhes = !produto
       ? ''
@@ -771,6 +801,14 @@ function ListDetail() {
                     : qtd
                   : `${qtd} × ${formatarMoeda(Number(item.price))}`}
             </span>
+
+            {maisBarato && !item.is_completed && (
+              <span className="mt-0.5 block truncate text-xs font-medium text-brand-800">
+                Mais barato agora: {nomeDaLoja(maisBarato.loja.nome)} ·{' '}
+                {formatarMoeda(Number(maisBarato.preco))}
+                {maisBarato.medida === 'kg' ? '/kg' : ''}
+              </span>
+            )}
           </span>
         </label>
 
@@ -998,6 +1036,11 @@ function ListDetail() {
           </p>
         )}
       </section>
+
+
+      {!lista.is_completed && precosDaLista && precosDaLista.melhor_loja.length > 0 && (
+        <MelhorLoja precos={precosDaLista} />
+      )}
 
 
       {erro && (

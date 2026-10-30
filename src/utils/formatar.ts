@@ -162,3 +162,21 @@ export function dataHoraDaNota(iso: string | null) {
     timeZone: 'America/Manaus',
   })
 }
+
+
+// "hoje", "ontem" ou "há 9 dias" (para a data de um preço).
+export function quandoFoi(iso: string) {
+  const dia = (data: Date) =>
+    data.toLocaleDateString('en-CA', { timeZone: 'America/Manaus' })
+  const hoje = new Date(dia(new Date()))
+  const entao = new Date(dia(new Date(iso)))
+  const dias = Math.round((hoje.getTime() - entao.getTime()) / 86_400_000)
+
+  if (dias <= 0) {
+    return 'hoje'
+  }
+  if (dias === 1) {
+    return 'ontem'
+  }
+  return `há ${dias} dias`
+}
