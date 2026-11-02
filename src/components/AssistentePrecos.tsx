@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
-import { MapPin, Send, Sparkles } from 'lucide-react'
+import { ExternalLink, MapPin, Search, Send, Sparkles } from 'lucide-react'
 
 import { useLocalizacao } from '../hooks/useLocalizacao'
 import {
@@ -16,8 +16,9 @@ const SUGESTOES = [
 ]
 
 
-// Chat do Início: pergunta onde um produto está mais barato. As respostas
-// usam os preços reais das notas fiscais (a IA só escreve o texto).
+// Chat do Início: pergunta onde comprar mais barato. Com o Gemini, a resposta
+// vem do Google Maps e da busca do Google (com as fontes); os preços das
+// notas fiscais entram como extra.
 function AssistentePrecos() {
   const [mensagens, setMensagens] = useState<MensagemDoChat[]>([])
   const [texto, setTexto] = useState('')
@@ -41,9 +42,9 @@ function AssistentePrecos() {
     setErro('')
     setEnviando(true)
     try {
-      const { resposta, fonte } = await perguntarAoAssistente(historico, localizacao.origem)
+      const { resposta, fonte, fontes } = await perguntarAoAssistente(historico, localizacao.origem)
       setFonte(fonte)
-      setMensagens([...historico, { papel: 'assistente', texto: resposta }])
+      setMensagens([...historico, { papel: 'assistente', texto: resposta, fontes }])
     } catch (falha) {
       setErro(falha instanceof Error ? falha.message : 'O assistente não respondeu.')
     } finally {
@@ -71,7 +72,7 @@ function AssistentePrecos() {
               Assistente de preços
             </h2>
             <p className="text-sm text-muted">
-              Pergunte onde um produto está mais barato em Manaus.
+              Pergunte onde comprar mais barato perto de você.
             </p>
           </div>
         </div>
@@ -104,15 +105,40 @@ function AssistentePrecos() {
               key={indice}
               className={`flex ${mensagem.papel === 'usuario' ? 'justify-end' : 'justify-start'}`}
             >
-              <p
-                className={`max-w-[85%] whitespace-pre-line rounded-2xl px-3.5 py-2 text-[15px] ${
-                  mensagem.papel === 'usuario'
-                    ? 'bg-brand-600 text-white'
-                    : 'border border-line bg-white text-ink'
-                }`}
-              >
-                {mensagem.texto}
-              </p>
+              <div className="max-w-[85%]">
+                <p
+                  className={`whitespace-pre-line rounded-2xl px-3.5 py-2 text-[15px] ${
+                    mensagem.papel === 'usuario'
+                      ? 'bg-brand-600 text-white'
+                      : 'border border-line bg-white text-ink'
+                  }`}
+                >
+                  {mensagem.texto}
+                </p>
+                {mensagem.fontes && mensagem.fontes.length > 0 && (
+                  <ul className="mt-1.5 flex flex-wrap gap-1.5" aria-label="Fontes da resposta">
+                    {mensagem.fontes.map((fonteDaResposta) => (
+                      <li key={fonteDaResposta.url}>
+                        <a
+                          href={fonteDaResposta.url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex max-w-[16rem] items-center gap-1 rounded-full border border-line bg-white px-2.5 py-1 text-xs text-muted transition hover:border-brand-600 hover:text-brand-800"
+                        >
+                          {fonteDaResposta.tipo === 'maps' ? (
+                            <MapPin size={12} aria-hidden="true" />
+                          ) : fonteDaResposta.tipo === 'busca' ? (
+                            <Search size={12} aria-hidden="true" />
+                          ) : (
+                            <ExternalLink size={12} aria-hidden="true" />
+                          )}
+                          <span className="truncate">{fonteDaResposta.titulo}</span>
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
             </div>
           ))}
           {enviando && (
@@ -165,7 +191,7 @@ function AssistentePrecos() {
 
       <p className="mt-2 text-xs text-muted">
         Preços das notas fiscais lidas no app; podem ter mudado.
-        {fonte === 'gemini' && ' Respostas escritas pelo Gemini, do Google.'}
+        {fonte === 'gemini' && ' Respostas do Gemini, com Google Maps e busca do Google.'}
         {fonte === 'claude' && ' Respostas escritas pelo Claude, da Anthropic.'}
       </p>
     </section>

@@ -91,14 +91,24 @@ function Login() {
           />
         </div>
 
-        <CampoSenha
-          id="senha"
-          rotulo="Senha"
-          valor={senha}
-          aoMudar={setSenha}
-          autoComplete="current-password"
-          placeholder="Sua senha"
-        />
+        <div>
+          <CampoSenha
+            id="senha"
+            rotulo="Senha"
+            valor={senha}
+            aoMudar={setSenha}
+            autoComplete="current-password"
+            placeholder="Sua senha"
+          />
+          <p className="mt-2 text-right text-sm">
+            <Link
+              to="/esqueci-senha"
+              className="font-semibold text-brand-600 hover:text-brand-800"
+            >
+              Esqueci minha senha
+            </Link>
+          </p>
+        </div>
 
         {erro && (
           <p

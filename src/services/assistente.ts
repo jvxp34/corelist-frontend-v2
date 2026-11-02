@@ -3,15 +3,26 @@ import { apiFetch } from '../api/cliente'
 import type { Origem } from './precos'
 
 
+// Link que acompanha a resposta: lugar no Google Maps, página da internet ou
+// a busca feita no Google (o Google pede que essas fontes apareçam).
+export interface FonteDaResposta {
+  tipo: 'maps' | 'web' | 'busca'
+  titulo: string
+  url: string
+}
+
 export interface MensagemDoChat {
   papel: 'usuario' | 'assistente'
   texto: string
+  // Só para mostrar; o backend ignora no histórico.
+  fontes?: FonteDaResposta[]
 }
 
 export interface RespostaDoAssistente {
   resposta: string
   // IA que respondeu; 'sem_ia' = frases prontas (sem chave ou erro).
   fonte: 'gemini' | 'claude' | 'sem_ia'
+  fontes: FonteDaResposta[]
 }
 
 
@@ -20,7 +31,9 @@ export async function perguntarAoAssistente(
   mensagens: MensagemDoChat[],
   origem?: Origem | null,
 ): Promise<RespostaDoAssistente> {
-  const corpo: Record<string, unknown> = { mensagens }
+  const corpo: Record<string, unknown> = {
+    mensagens: mensagens.map(({ papel, texto }) => ({ papel, texto })),
+  }
   if (origem) {
     // 3 casas (~100 m): basta para a distância.
     corpo.lat = Number(origem.lat.toFixed(3))

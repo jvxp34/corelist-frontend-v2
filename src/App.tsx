@@ -13,6 +13,8 @@ import Profile from './pages/Profile'
 import ListDetail from './pages/ListDetail'
 import NotaNaLista from './pages/NotaNaLista'
 import Register from './pages/Register'
+import EsqueciSenha from './pages/EsqueciSenha'
+import RedefinirSenha from './pages/RedefinirSenha'
 
 import MainLayout from './layouts/MainLayout'
 
@@ -30,6 +32,16 @@ function App() {
         <Route
           path="/register"
           element={<Register />}
+        />
+
+        <Route
+          path="/esqueci-senha"
+          element={<EsqueciSenha />}
+        />
+
+        <Route
+          path="/redefinir-senha"
+          element={<RedefinirSenha />}
         />
 
         {/* Área principal do sistema */}
