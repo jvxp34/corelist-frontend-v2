@@ -67,6 +67,9 @@ jobs:
           USUARIO: ${{ vars.DOCKERHUB_USERNAME }}
           TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
         run: |
+          # Tira espaços e quebras de linha coladas junto com o valor.
+          USUARIO="$(printf '%s' "$USUARIO" | tr -d '[:space:]')"
+          echo "usuario=${USUARIO}" >> "$GITHUB_OUTPUT"
           echo "imagem=${USUARIO:-local}/corelist-frontend" >> "$GITHUB_OUTPUT"
           echo "versao=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
           if [ "${{ github.event_name }}" != "pull_request" ] && [ "${GITHUB_REF_NAME}" = "${BRANCH_DE_PRODUCAO}" ] \
@@ -110,7 +113,7 @@ jobs:
         if: steps.nomes.outputs.publicar == 'true'
         uses: docker/login-action@v3
         with:
-          username: ${{ vars.DOCKERHUB_USERNAME }}
+          username: ${{ steps.nomes.outputs.usuario }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Push no Docker Hub
