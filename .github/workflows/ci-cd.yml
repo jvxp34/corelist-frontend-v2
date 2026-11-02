@@ -1,9 +1,12 @@
-# CI/CD do frontend: Lint e build → Deploy (AWS Amplify) → Smoke test.
+# CI/CD do frontend: Lint e build → Imagem Docker (Docker Hub) → Deploy (AWS Amplify) → Smoke test.
 #
 # - Em todo push e pull request: lint (ESLint) e checagem de tipos + build.
 # - No branch mvp-comprafacil: o AWS Amplify publica o site sozinho a cada
 #   push (veja amplify.yml). O smoke test espera a publicação, confere que o
 #   site no ar é exatamente o build deste commit e que a API responde.
+# - Imagem: em todo push monta e testa o container (nginx); no branch de
+#   produção publica <DOCKERHUB_USERNAME>/corelist-frontend no Docker Hub.
+#   Precisa da variável DOCKERHUB_USERNAME e do segredo DOCKERHUB_TOKEN.
 name: CI/CD
 
 on:
@@ -51,10 +54,75 @@ jobs:
           echo "arquivo=${arquivo}" >> "$GITHUB_OUTPUT"
           echo "Build: ${arquivo}"
 
+  imagem:
+    name: Imagem Docker (build, teste e push no Docker Hub)
+    runs-on: ubuntu-latest
+    needs: lint-e-build
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Nome da imagem e versão
+        id: nomes
+        env:
+          USUARIO: ${{ vars.DOCKERHUB_USERNAME }}
+          TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+        run: |
+          echo "imagem=${USUARIO:-local}/corelist-frontend" >> "$GITHUB_OUTPUT"
+          echo "versao=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+          if [ "${{ github.event_name }}" != "pull_request" ] && [ "${GITHUB_REF_NAME}" = "${BRANCH_DE_PRODUCAO}" ] \
+             && [ -n "$USUARIO" ] && [ -n "$TOKEN" ]; then
+            echo "publicar=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "publicar=false" >> "$GITHUB_OUTPUT"
+            if [ -z "$USUARIO" ] || [ -z "$TOKEN" ]; then
+              echo "::warning::Variável DOCKERHUB_USERNAME ou segredo DOCKERHUB_TOKEN não configurados: a imagem só é montada e testada."
+            fi
+          fi
+
+      - uses: docker/setup-buildx-action@v3
+
+      # Monta a imagem e carrega no runner para testar antes de publicar.
+      - name: Build
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          load: true
+          build-args: VERSAO=${{ steps.nomes.outputs.versao }}
+          tags: |
+            ${{ steps.nomes.outputs.imagem }}:latest
+            ${{ steps.nomes.outputs.imagem }}:${{ steps.nomes.outputs.versao }}
+          cache-from: type=gha,scope=site
+          cache-to: type=gha,mode=max,scope=site
+
+      - name: Testar o container
+        env:
+          IMAGEM: ${{ steps.nomes.outputs.imagem }}:${{ steps.nomes.outputs.versao }}
+          VERSAO: ${{ steps.nomes.outputs.versao }}
+        run: |
+          docker run -d --name site -p 8080:80 "$IMAGEM"
+          sleep 3
+          curl -fsS http://localhost:8080/ | grep -q '<div id="root">' && echo "Página: OK"
+          curl -fsS http://localhost:8080/listas | grep -q '<div id="root">' && echo "Rota do app: OK"
+          test "$(curl -fsS http://localhost:8080/versao.txt)" = "$VERSAO" && echo "Versão: OK"
+          docker rm -f site
+
+      - name: Login no Docker Hub
+        if: steps.nomes.outputs.publicar == 'true'
+        uses: docker/login-action@v3
+        with:
+          username: ${{ vars.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Push no Docker Hub
+        if: steps.nomes.outputs.publicar == 'true'
+        run: |
+          docker push "${{ steps.nomes.outputs.imagem }}:${{ steps.nomes.outputs.versao }}"
+          docker push "${{ steps.nomes.outputs.imagem }}:latest"
+
   deploy:
     name: Deploy (AWS Amplify)
     runs-on: ubuntu-latest
-    needs: lint-e-build
+    needs: [lint-e-build, imagem]
     if: github.event_name != 'pull_request' && github.ref_name == 'mvp-comprafacil'
     steps:
       - name: Publicação pelo Amplify
