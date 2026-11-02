@@ -5,6 +5,7 @@ import {
   listarProdutos,
   criarProduto,
   removerProduto,
+  esconderProduto,
   buscarPorCodigoDeBarras,
   NOME_DA_ORIGEM,
   type OrigemDosDados,
@@ -203,11 +204,16 @@ function Products() {
 
 
   async function remover(produto: Product) {
+    // Apaga de vez quando dá (cadastro seu ainda sem uso, ou administrador);
+    // senão, o produto some só da sua tela: o catálogo é de todos.
+    const apagar = podeApagar || produto.pode_remover === true
     const confirmou = await confirmar({
       titulo: `Remover "${produto.name}"?`,
-      mensagem: podeApagar
-        ? 'O produto sai do catálogo para todos os usuários. Produtos que já estão em alguma lista não podem ser removidos.'
-        : 'Use para desfazer um cadastro feito por engano. O produto sai do catálogo.',
+      mensagem: apagar
+        ? podeApagar
+          ? 'O produto sai do catálogo para todos os usuários. Produtos que já estão em alguma lista não podem ser removidos.'
+          : 'Você cadastrou este produto e ele ainda não foi usado: ele sai do catálogo.'
+        : 'O produto sai da sua tela de produtos e da sua busca. Suas listas e compras continuam como estão.',
       textoConfirmar: 'Remover',
       perigoso: true,
     })
@@ -219,7 +225,11 @@ function Products() {
     try {
       setErro('')
 
-      await removerProduto(produto.id)
+      if (apagar) {
+        await removerProduto(produto.id)
+      } else {
+        await esconderProduto(produto.id)
+      }
 
       setProdutos((atuais) =>
         (atuais ?? []).filter(
@@ -593,9 +603,9 @@ function Products() {
                         </p>
                       )}
 
-                      {/* Quem cadastrou (ou o administrador) remove um
-                          cadastro feito por engano; o backend confere. */}
-                      {(podeApagar || produto.pode_remover) && (
+                      {/* Lixeira em todos: apaga quando dá, senão esconde
+                          só para a pessoa (veja remover()). */}
+                      {(
                         <button
                           type="button"
                           onClick={() => remover(produto)}

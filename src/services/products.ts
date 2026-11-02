@@ -160,6 +160,21 @@ export async function removerProduto(id: number): Promise<void> {
 }
 
 
+// Lixeira num produto que a pessoa não pode apagar: some só da tela dela.
+export async function esconderProduto(id: number): Promise<void> {
+  const response = await apiFetch(`${API_URL}/products/${id}/esconder/`, {
+    method: 'POST',
+    headers: getAuthHeaders(),
+  })
+
+  if (!response.ok) {
+    throw new Error(
+      await mensagemDeErro(response, 'Não foi possível remover o produto.'),
+    )
+  }
+}
+
+
 // Resultado da busca para adicionar à lista (GET lists/produtos/?q=).
 export interface ProdutoEncontrado {
   id: number
