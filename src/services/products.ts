@@ -33,6 +33,9 @@ export interface Product {
   data_source: OrigemDosDados
   created_at: string
   updated_at: string
+  // Quem cadastrou (ou o administrador) pode remover, se o produto não estiver
+  // em lista nem tiver preço de nota fiscal.
+  pode_remover?: boolean
 }
 
 // Dados que o Open Food Facts devolve para um código de barras.

@@ -205,8 +205,9 @@ function Products() {
   async function remover(produto: Product) {
     const confirmou = await confirmar({
       titulo: `Remover "${produto.name}"?`,
-      mensagem:
-        'O produto sai do catálogo para todos os usuários. Produtos que já estão em alguma lista não podem ser removidos.',
+      mensagem: podeApagar
+        ? 'O produto sai do catálogo para todos os usuários. Produtos que já estão em alguma lista não podem ser removidos.'
+        : 'Use para desfazer um cadastro feito por engano. O produto sai do catálogo.',
       textoConfirmar: 'Remover',
       perigoso: true,
     })
@@ -592,8 +593,9 @@ function Products() {
                         </p>
                       )}
 
-                      {/* Só administrador apaga: o catálogo é de todos. */}
-                      {podeApagar && (
+                      {/* Quem cadastrou (ou o administrador) remove um
+                          cadastro feito por engano; o backend confere. */}
+                      {(podeApagar || produto.pode_remover) && (
                         <button
                           type="button"
                           onClick={() => remover(produto)}
