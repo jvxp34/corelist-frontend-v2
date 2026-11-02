@@ -1,23 +1,40 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ChevronDown, ChevronUp, Navigation, Search } from 'lucide-react'
+import { ChevronDown, ChevronUp, MapPin, Navigation, Search, X } from 'lucide-react'
 
 import AdicionarFoto from '../components/AdicionarFoto'
 import FotoProduto from '../components/FotoProduto'
 import LogoDaLoja from '../components/LogoDaLoja'
+import { useLocalizacao } from '../hooks/useLocalizacao'
 import {
   buscarPrecos,
   linkComoChegar,
   nomeDaLojaParaMostrar,
+  textoDistancia,
   type LojaDoPreco,
   type Periodo,
   type PrecoNaLoja,
+  type Raio,
   type ResumoDePreco,
 } from '../services/precos'
 import { formatarMoeda, quandoFoi } from '../utils/formatar'
 
 
 const PERIODOS: Periodo[] = [7, 30, 90]
+const RAIOS: Raio[] = [2, 5, 10]
+// Lojas que aparecem no cartão antes de "Ver todas".
+const LOJAS_NO_CARTAO = 3
+
+
+function NomeEDistancia({ loja }: { loja: LojaDoPreco }) {
+  const distancia = textoDistancia(loja.distancia_km)
+  return (
+    <>
+      {nomeDaLojaParaMostrar(loja)}
+      {distancia && <span className="text-muted"> · a {distancia}</span>}
+    </>
+  )
+}
 
 
 function precoComMedida(preco: string, medida: string) {
@@ -57,7 +74,7 @@ function LinhaDaLoja({ linha }: { linha: PrecoNaLoja }) {
     <li className="flex items-center gap-3 py-2.5">
       <LogoDaLoja loja={linha.loja} tamanho="sm" />
       <div className="min-w-0 flex-1">
-        <p className="truncate text-[15px] font-semibold">{nomeDaLojaParaMostrar(linha.loja)}</p>
+        <p className="truncate text-[15px] font-semibold"><NomeEDistancia loja={linha.loja} /></p>
         {linha.loja.endereco && (
           <p className="truncate text-xs text-muted">{linha.loja.endereco}</p>
         )}
@@ -126,7 +143,7 @@ function CartaoDoProduto({ resumo }: { resumo: ResumoDePreco }) {
                 {precoComMedida(agora.preco, agora.medida)}
               </p>
               <p className="truncate text-sm text-ink">
-                {nomeDaLojaParaMostrar(agora.loja)} · {quandoFoi(agora.data)}
+                <NomeEDistancia loja={agora.loja} /> · {quandoFoi(agora.data)}
               </p>
             </div>
           </div>
@@ -144,7 +161,7 @@ function CartaoDoProduto({ resumo }: { resumo: ResumoDePreco }) {
                 {precoComMedida(visto.preco, visto.medida)}
               </p>
               <p className="truncate text-sm text-ink">
-                {nomeDaLojaParaMostrar(visto.loja)} · {quandoFoi(visto.data)}
+                <NomeEDistancia loja={visto.loja} /> · {quandoFoi(visto.data)}
                 <span className="ml-1.5 rounded-full bg-slate-200 px-1.5 py-0.5 text-xs font-semibold text-slate-700">
                   pode ter mudado
                 </span>
@@ -163,26 +180,30 @@ function CartaoDoProduto({ resumo }: { resumo: ResumoDePreco }) {
         </p>
       )}
 
-      {resumo.lojas.length > 0 && (
+      {/* As lojas do mais barato ao mais caro (preços de hoje primeiro). */}
+      {resumo.lojas.length > 1 && (
+        <>
+          <p className="mt-3 text-xs font-semibold uppercase tracking-wide text-muted">
+            {resumo.lojas.length} lojas com preço
+          </p>
+          <ul className="mt-1 divide-y divide-slate-100 border-t border-slate-100">
+            {(aberto ? resumo.lojas : resumo.lojas.slice(0, LOJAS_NO_CARTAO)).map((linha) => (
+              <LinhaDaLoja key={linha.loja.id} linha={linha} />
+            ))}
+          </ul>
+        </>
+      )}
+
+      {resumo.lojas.length > LOJAS_NO_CARTAO && (
         <button
           type="button"
           onClick={() => setAberto(!aberto)}
           aria-expanded={aberto}
-          className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-brand-600 hover:text-brand-800"
+          className="mt-2 inline-flex items-center gap-1 text-sm font-semibold text-brand-600 hover:text-brand-800"
         >
           {aberto ? <ChevronUp size={16} aria-hidden="true" /> : <ChevronDown size={16} aria-hidden="true" />}
-          {aberto
-            ? resumo.lojas.length === 1 ? 'Esconder a loja' : 'Esconder lojas'
-            : resumo.lojas.length === 1 ? 'Ver a loja' : `Ver as ${resumo.lojas.length} lojas`}
+          {aberto ? 'Mostrar menos' : `Ver todas as ${resumo.lojas.length} lojas`}
         </button>
-      )}
-
-      {aberto && (
-        <ul className="mt-2 divide-y divide-slate-100 border-t border-slate-100">
-          {resumo.lojas.map((linha) => (
-            <LinhaDaLoja key={linha.loja.id} linha={linha} />
-          ))}
-        </ul>
       )}
     </li>
   )
@@ -196,11 +217,14 @@ function PrecosDaCidade() {
   const [dias, setDias] = useState<Periodo>(30)
   const [resultados, setResultados] = useState<ResumoDePreco[] | null>(null)
   const [erro, setErro] = useState('')
+  const localizacao = useLocalizacao()
+  const [raio, setRaio] = useState<Raio | null>(5)
+  const origem = localizacao.origem
 
   useEffect(() => {
     const controle = new AbortController()
     const espera = setTimeout(() => {
-      buscarPrecos(texto.trim(), dias, controle.signal)
+      buscarPrecos(texto.trim(), dias, controle.signal, origem ? { origem, raio } : undefined)
         .then((dados) => {
           setResultados(dados)
           setErro('')
@@ -215,7 +239,7 @@ function PrecosDaCidade() {
       clearTimeout(espera)
       controle.abort()
     }
-  }, [texto, dias])
+  }, [texto, dias, origem, raio])
 
   const termo = texto.trim()
 
@@ -268,6 +292,60 @@ function PrecosDaCidade() {
         </div>
       </div>
 
+      {/* Perto de mim: a localização fica só nesta página (não é salva). */}
+      <div className="mt-3 flex flex-wrap items-center gap-2">
+        {localizacao.estado === 'ativa' ? (
+          <>
+            <span className="inline-flex items-center gap-1 text-sm font-semibold text-ink">
+              <MapPin size={16} aria-hidden="true" className="text-brand-600" />
+              Perto de mim:
+            </span>
+            <div role="radiogroup" aria-label="Distância" className="flex flex-wrap gap-1">
+              {[...RAIOS, null].map((opcao) => (
+                <button
+                  key={opcao ?? 'cidade'}
+                  type="button"
+                  role="radio"
+                  aria-checked={raio === opcao}
+                  onClick={() => setRaio(opcao)}
+                  className={`h-9 rounded-lg px-3 text-sm font-semibold ring-1 transition ${
+                    raio === opcao ? 'bg-brand-600 text-white ring-brand-600' : 'bg-white text-muted ring-line hover:text-ink'
+                  }`}
+                >
+                  {opcao ? `até ${opcao} km` : 'toda a cidade'}
+                </button>
+              ))}
+            </div>
+            <button
+              type="button"
+              onClick={localizacao.desligar}
+              aria-label="Parar de usar minha localização"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-muted hover:bg-slate-100 hover:text-ink"
+            >
+              <X size={16} aria-hidden="true" />
+            </button>
+          </>
+        ) : (
+          <button
+            type="button"
+            onClick={localizacao.pedir}
+            disabled={localizacao.estado === 'buscando'}
+            className="inline-flex h-10 items-center gap-1.5 rounded-xl border border-brand-100 bg-brand-50 px-3 text-sm font-semibold text-brand-800 transition hover:bg-brand-100 disabled:opacity-60"
+          >
+            <MapPin size={16} aria-hidden="true" />
+            {localizacao.estado === 'buscando' ? 'Buscando sua localização...' : 'Lojas perto de mim'}
+          </button>
+        )}
+        {localizacao.estado === 'negada' && (
+          <p className="w-full text-sm text-amber-800">
+            O navegador não liberou sua localização. Libere nas permissões do site para ver as lojas perto de você.
+          </p>
+        )}
+        {localizacao.estado === 'indisponivel' && (
+          <p className="w-full text-sm text-amber-800">Não foi possível obter sua localização agora.</p>
+        )}
+      </div>
+
       {erro && (
         <p role="alert" className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
           {erro}
@@ -281,7 +359,9 @@ function PrecosDaCidade() {
       {resultados !== null && resultados.length === 0 && (
         <div className="mt-6 rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center">
           <p className="font-display text-lg font-semibold">
-            {termo ? `Ainda não temos preço de "${termo}"` : 'Ainda não há preços da cidade'}
+            {origem && raio
+              ? `Nenhuma loja com preço até ${raio} km de você`
+              : termo ? `Ainda não temos preço de "${termo}"` : 'Ainda não há preços da cidade'}
           </p>
           <p className="mt-1 text-sm text-muted">
             Os preços aparecem quando alguém lê uma nota fiscal com esse produto.

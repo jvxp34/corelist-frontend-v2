@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 
 import { useUsuario } from '../hooks/useUsuario'
 import InstalarApp from '../components/InstalarApp'
+import AssistentePrecos from '../components/AssistentePrecos'
 
 
 const CHAVE_AVISO_INSTALAR = 'avisoInstalarFechado'
@@ -181,6 +182,9 @@ function Dashboard() {
           <InstalarApp aoFechar={fecharAvisoInstalar} />
         </div>
       )}
+
+
+      <AssistentePrecos />
 
 
       {erro && (

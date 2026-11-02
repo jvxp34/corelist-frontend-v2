@@ -15,6 +15,13 @@ export interface LojaDoPreco {
   marca: string | null
   icone: string | null
   endereco: string
+  // Só quando a busca manda a localização; null = loja ainda sem coordenadas.
+  distancia_km?: number | null
+}
+
+export function textoDistancia(km: number | null | undefined) {
+  if (km === null || km === undefined) return ''
+  return km < 1 ? `${Math.round(km * 1000)} m` : `${km.toLocaleString('pt-BR', { maximumFractionDigits: 1 })} km`
 }
 
 export interface PrecoNaLoja {
@@ -63,12 +70,27 @@ export interface PrecosDaLista {
 }
 
 
+// Perto de mim: raio em km (o backend aceita 2, 5 ou 10).
+export type Raio = 2 | 5 | 10
+
+export interface Origem {
+  lat: number
+  lng: number
+}
+
 export async function buscarPrecos(
   texto: string,
   dias: Periodo,
   sinal?: AbortSignal,
+  perto?: { origem: Origem; raio: Raio | null },
 ): Promise<ResumoDePreco[]> {
   const parametros = new URLSearchParams({ q: texto, dias: String(dias) })
+  if (perto) {
+    // 3 casas (~100 m): basta para a distância e não manda a posição exata.
+    parametros.set('lat', perto.origem.lat.toFixed(3))
+    parametros.set('lng', perto.origem.lng.toFixed(3))
+    if (perto.raio) parametros.set('raio', String(perto.raio))
+  }
   const response = await apiFetch(`${API_URL}/lists/precos/?${parametros}`, {
     method: 'GET',
     signal: sinal,
