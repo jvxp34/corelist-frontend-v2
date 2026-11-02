@@ -10,8 +10,8 @@ export interface MensagemDoChat {
 
 export interface RespostaDoAssistente {
   resposta: string
-  // 'claude' = respondido pela IA; 'sem_ia' = frases prontas (sem chave ou erro).
-  fonte: 'claude' | 'sem_ia'
+  // IA que respondeu; 'sem_ia' = frases prontas (sem chave ou erro).
+  fonte: 'gemini' | 'claude' | 'sem_ia'
 }
 
 

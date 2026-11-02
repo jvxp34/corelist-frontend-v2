@@ -5,6 +5,7 @@ import { useLocalizacao } from '../hooks/useLocalizacao'
 import {
   perguntarAoAssistente,
   type MensagemDoChat,
+  type RespostaDoAssistente,
 } from '../services/assistente'
 
 
@@ -16,13 +17,13 @@ const SUGESTOES = [
 
 
 // Chat do Início: pergunta onde um produto está mais barato. As respostas
-// usam os preços reais das notas fiscais (o Claude só escreve o texto).
+// usam os preços reais das notas fiscais (a IA só escreve o texto).
 function AssistentePrecos() {
   const [mensagens, setMensagens] = useState<MensagemDoChat[]>([])
   const [texto, setTexto] = useState('')
   const [enviando, setEnviando] = useState(false)
   const [erro, setErro] = useState('')
-  const [peloClaude, setPeloClaude] = useState(false)
+  const [fonte, setFonte] = useState<RespostaDoAssistente['fonte'] | null>(null)
   const localizacao = useLocalizacao()
   const fim = useRef<HTMLDivElement>(null)
 
@@ -41,7 +42,7 @@ function AssistentePrecos() {
     setEnviando(true)
     try {
       const { resposta, fonte } = await perguntarAoAssistente(historico, localizacao.origem)
-      setPeloClaude(fonte === 'claude')
+      setFonte(fonte)
       setMensagens([...historico, { papel: 'assistente', texto: resposta }])
     } catch (falha) {
       setErro(falha instanceof Error ? falha.message : 'O assistente não respondeu.')
@@ -164,7 +165,8 @@ function AssistentePrecos() {
 
       <p className="mt-2 text-xs text-muted">
         Preços das notas fiscais lidas no app; podem ter mudado.
-        {peloClaude && ' Respostas escritas pelo Claude, da Anthropic.'}
+        {fonte === 'gemini' && ' Respostas escritas pelo Gemini, do Google.'}
+        {fonte === 'claude' && ' Respostas escritas pelo Claude, da Anthropic.'}
       </p>
     </section>
   )
