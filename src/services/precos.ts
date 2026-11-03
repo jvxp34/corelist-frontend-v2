@@ -78,6 +78,19 @@ export interface Origem {
   lng: number
 }
 
+// Endereço aproximado da pessoa ("Rua 10 de Julho, Centro, Manaus") ou null.
+export async function ondeEstou(origem: Origem): Promise<string | null> {
+  const parametros = new URLSearchParams({
+    lat: origem.lat.toFixed(4),
+    lng: origem.lng.toFixed(4),
+  })
+  const response = await apiFetch(`${API_URL}/lists/onde-estou/?${parametros}`, { method: 'GET' })
+  if (!response.ok) return null
+  const dados: { texto: string | null } = await response.json()
+  return dados.texto
+}
+
+
 export async function buscarPrecos(
   texto: string,
   dias: Periodo,

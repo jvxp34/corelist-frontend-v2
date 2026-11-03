@@ -25,6 +25,15 @@ export interface NotaLida {
   itens: ItemDaNota[]
   // Se o usuário já importou esta nota, o id da compra.
   lista_importada: number | null
+  // Listas em andamento que parecem ser desta compra (mais parecida primeiro).
+  listas_parecidas: ListaParecida[]
+}
+
+export interface ListaParecida {
+  id: number
+  nome: string
+  itens_na_nota: number
+  total_itens: number
 }
 
 export interface ItemParaImportar {

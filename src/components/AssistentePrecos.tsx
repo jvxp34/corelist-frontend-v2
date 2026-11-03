@@ -3,6 +3,7 @@ import { ExternalLink, MapPin, Search, Send, Sparkles } from 'lucide-react'
 
 import FotoProduto from './FotoProduto'
 import LogoDaLoja from './LogoDaLoja'
+import OndeEstou from './OndeEstou'
 import { useLocalizacao } from '../hooks/useLocalizacao'
 import {
   perguntarAoAssistente,
@@ -150,6 +151,8 @@ function AssistentePrecos() {
           </button>
         )}
       </div>
+
+      {localizacao.origem && <OndeEstou origem={localizacao.origem} />}
 
       {mensagens.length > 0 && (
         <div

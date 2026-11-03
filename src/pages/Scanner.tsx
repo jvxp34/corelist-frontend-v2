@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
-import { Trash2 } from 'lucide-react'
+import { Link, useNavigate } from 'react-router-dom'
+import { ListChecks, Trash2 } from 'lucide-react'
 
 import EntradaDaNota from '../components/EntradaDaNota'
 import SugerirProximaLista from '../components/SugerirProximaLista'
@@ -66,6 +66,8 @@ function Scanner() {
   const [nomeCompra, setNomeCompra] = useState('')
   const [salvando, setSalvando] = useState(false)
   const [jaImportada, setJaImportada] = useState<number | null>(null)
+  const [ignorouLista, setIgnorouLista] = useState(false)
+  const navigate = useNavigate()
   const [compraSalva, setCompraSalva] = useState<number | null>(null)
 
 
@@ -208,6 +210,65 @@ function Scanner() {
                 ` · total da nota: ${formatarMoeda(Number(nota.total))}`}
             </p>
           </section>
+
+          {/* A nota parece ser de uma lista em andamento: concluir a lista com
+              ela liga os produtos, troca os preços pelos da nota e marca o
+              que ficou de fora como "não comprado". */}
+          {jaImportada === null && !ignorouLista && nota.listas_parecidas?.length > 0 && (
+            <section
+              aria-label="Lista desta compra"
+              className="mt-4 rounded-2xl border border-brand-100 bg-brand-50 p-5"
+            >
+              <div className="flex items-start gap-3">
+                <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-white text-brand-600">
+                  <ListChecks size={20} aria-hidden="true" />
+                </span>
+                <div className="min-w-0">
+                  <h2 className="font-display text-lg font-semibold text-ink">
+                    Esta nota parece ser da sua lista "{nota.listas_parecidas[0].nome}"
+                  </h2>
+                  <p className="mt-0.5 text-sm text-muted">
+                    {nota.listas_parecidas[0].itens_na_nota} de {nota.listas_parecidas[0].total_itens} produtos
+                    da lista estão na nota. Concluindo a lista com a nota, os preços pagos entram nos itens
+                    e o que você não comprou fica marcado.
+                  </p>
+                </div>
+              </div>
+              <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+                <button
+                  type="button"
+                  onClick={() => navigate(`/listas/${nota.listas_parecidas[0].id}/nota`, { state: { link } })}
+                  className="h-11 rounded-xl bg-brand-600 px-5 text-[15px] font-semibold text-white transition hover:bg-brand-700"
+                >
+                  Concluir a lista com esta nota
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIgnorouLista(true)}
+                  className="h-11 rounded-xl border border-line bg-white px-5 text-[15px] font-semibold text-ink transition hover:bg-canvas"
+                >
+                  Não, salvar como compra nova
+                </button>
+              </div>
+              {nota.listas_parecidas.length > 1 && (
+                <p className="mt-3 text-sm text-muted">
+                  Ou use outra lista:{' '}
+                  {nota.listas_parecidas.slice(1).map((lista, indice) => (
+                    <span key={lista.id}>
+                      {indice > 0 && ', '}
+                      <button
+                        type="button"
+                        onClick={() => navigate(`/listas/${lista.id}/nota`, { state: { link } })}
+                        className="font-semibold text-brand-600 underline-offset-2 hover:underline"
+                      >
+                        {lista.nome} ({lista.itens_na_nota} de {lista.total_itens})
+                      </button>
+                    </span>
+                  ))}
+                </p>
+              )}
+            </section>
+          )}
 
           {jaImportada !== null ? (
             <div

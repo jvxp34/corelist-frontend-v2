@@ -5,6 +5,7 @@ import { ChevronDown, ChevronUp, MapPin, Navigation, Search, X } from 'lucide-re
 import AdicionarFoto from '../components/AdicionarFoto'
 import FotoProduto from '../components/FotoProduto'
 import LogoDaLoja from '../components/LogoDaLoja'
+import OndeEstou from '../components/OndeEstou'
 import { useLocalizacao } from '../hooks/useLocalizacao'
 import {
   buscarPrecos,
@@ -335,6 +336,11 @@ function PrecosDaCidade() {
             <MapPin size={16} aria-hidden="true" />
             {localizacao.estado === 'buscando' ? 'Buscando sua localização...' : 'Lojas perto de mim'}
           </button>
+        )}
+        {origem && (
+          <div className="w-full">
+            <OndeEstou origem={origem} />
+          </div>
         )}
         {localizacao.estado === 'negada' && (
           <p className="w-full text-sm text-amber-800">

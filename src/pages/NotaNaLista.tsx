@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { useEffect, useRef, useState } from 'react'
+import { Link, useLocation, useParams } from 'react-router-dom'
 import { ChevronLeft, Trash2 } from 'lucide-react'
 
 import EntradaDaNota from '../components/EntradaDaNota'
@@ -63,6 +63,11 @@ function NotaNaLista() {
   const [jaImportada, setJaImportada] = useState<number | null>(null)
   const [concluida, setConcluida] = useState(false)
 
+  // Vindo da leitura pelo menu ("esta nota parece ser da sua lista"), o link
+  // já chega pronto: a nota é lida de novo aqui, cruzada com esta lista.
+  const linkRecebido = (useLocation().state as { link?: string } | null)?.link
+  const jaLeuORecebido = useRef(false)
+
 
   async function ler(linkLido: string) {
     try {
@@ -86,6 +91,15 @@ function NotaNaLista() {
       setLendo(false)
     }
   }
+
+  useEffect(() => {
+    if (linkRecebido && !jaLeuORecebido.current) {
+      jaLeuORecebido.current = true
+      void ler(linkRecebido)
+    }
+    // ler muda a cada render; o link recebido é lido uma vez só.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [linkRecebido])
 
 
   function mudar(indice: number, mudanca: Partial<Escolha>) {
