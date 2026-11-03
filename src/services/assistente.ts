@@ -21,7 +21,7 @@ export interface MensagemDoChat {
 export interface RespostaDoAssistente {
   resposta: string
   // IA que respondeu; 'sem_ia' = frases prontas (sem chave ou erro).
-  fonte: 'gemini' | 'claude' | 'sem_ia'
+  fonte: 'gemini' | 'groq' | 'claude' | 'sem_ia'
   fontes: FonteDaResposta[]
 }
 

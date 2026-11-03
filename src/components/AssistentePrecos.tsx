@@ -10,15 +10,15 @@ import {
 
 
 const SUGESTOES = [
-  'Onde o arroz está mais barato?',
+  'Onde tem arroz mais barato perto de mim?',
   'Qual o menor preço do café?',
   'Onde compro leite mais barato perto de mim?',
 ]
 
 
-// Chat do Início: pergunta onde comprar mais barato. Com o Gemini, a resposta
-// vem do Google Maps e da busca do Google (com as fontes); os preços das
-// notas fiscais entram como extra.
+// Chat do Início: pergunta onde comprar mais barato. A IA (Gemini ou Groq,
+// grátis) consulta os mercados perto (OpenStreetMap), promoções na internet
+// (Tavily) e os preços das notas fiscais; as fontes aparecem na resposta.
 function AssistentePrecos() {
   const [mensagens, setMensagens] = useState<MensagemDoChat[]>([])
   const [texto, setTexto] = useState('')
@@ -190,9 +190,10 @@ function AssistentePrecos() {
       </form>
 
       <p className="mt-2 text-xs text-muted">
-        Preços das notas fiscais lidas no app; podem ter mudado.
-        {fonte === 'gemini' && ' Respostas do Gemini, com Google Maps e busca do Google.'}
-        {fonte === 'claude' && ' Respostas escritas pelo Claude, da Anthropic.'}
+        Mercados do OpenStreetMap, promoções da internet e preços das notas fiscais do app; os preços podem ter mudado.
+        {fonte === 'gemini' && ' Resposta escrita pelo Gemini, do Google.'}
+        {fonte === 'groq' && ' Resposta escrita por um modelo aberto, via Groq.'}
+        {fonte === 'claude' && ' Resposta escrita pelo Claude, da Anthropic.'}
       </p>
     </section>
   )
