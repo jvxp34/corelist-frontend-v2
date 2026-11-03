@@ -11,11 +11,33 @@ export interface FonteDaResposta {
   url: string
 }
 
+// Produto citado na resposta (foto do catálogo e o menor preço das notas).
+export interface ProdutoDoChat {
+  id: number
+  nome: string
+  embalagem: string | null
+  imagem_url: string | null
+  preco: string | null
+  medida: 'unit' | 'kg' | null
+  loja: string | null
+}
+
+// Loja citada na resposta (logo da rede, distância e rota).
+export interface LojaDoChat {
+  nome: string
+  marca: string | null
+  icone: string | null
+  distancia_km: number | null
+  url: string
+}
+
 export interface MensagemDoChat {
   papel: 'usuario' | 'assistente'
   texto: string
   // Só para mostrar; o backend ignora no histórico.
   fontes?: FonteDaResposta[]
+  produtos?: ProdutoDoChat[]
+  lojas?: LojaDoChat[]
 }
 
 export interface RespostaDoAssistente {
@@ -23,6 +45,8 @@ export interface RespostaDoAssistente {
   // IA que respondeu; 'sem_ia' = frases prontas (sem chave ou erro).
   fonte: 'gemini' | 'groq' | 'claude' | 'sem_ia'
   fontes: FonteDaResposta[]
+  produtos: ProdutoDoChat[]
+  lojas: LojaDoChat[]
 }
 
 

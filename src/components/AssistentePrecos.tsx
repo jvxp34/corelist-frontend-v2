@@ -1,12 +1,68 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { ExternalLink, MapPin, Search, Send, Sparkles } from 'lucide-react'
 
+import FotoProduto from './FotoProduto'
+import LogoDaLoja from './LogoDaLoja'
 import { useLocalizacao } from '../hooks/useLocalizacao'
 import {
   perguntarAoAssistente,
+  type LojaDoChat,
   type MensagemDoChat,
+  type ProdutoDoChat,
   type RespostaDoAssistente,
 } from '../services/assistente'
+import { textoDistancia } from '../services/precos'
+import { formatarMoeda } from '../utils/formatar'
+
+
+// Fotos dos produtos citados (do catálogo do app).
+function ProdutosDaResposta({ produtos }: { produtos: ProdutoDoChat[] }) {
+  return (
+    <ul className="mt-2 grid gap-2 sm:grid-cols-2" aria-label="Produtos">
+      {produtos.map((produto) => (
+        <li key={produto.id} className="flex items-center gap-2.5 rounded-xl border border-line bg-white p-2">
+          <FotoProduto url={produto.imagem_url} nome={produto.nome} tamanho="sm" />
+          <div className="min-w-0">
+            <p className="line-clamp-2 text-sm font-semibold leading-snug text-ink">{produto.nome}</p>
+            <p className="truncate text-xs text-muted">
+              {produto.preco
+                ? `${formatarMoeda(Number(produto.preco))}${produto.medida === 'kg' ? '/kg' : ''}${produto.loja ? ` · ${produto.loja}` : ''}`
+                : produto.embalagem ?? 'Foto ilustrativa'}
+            </p>
+          </div>
+        </li>
+      ))}
+    </ul>
+  )
+}
+
+
+// Logos das lojas citadas, com a distância e a rota no mapa.
+function LojasDaResposta({ lojas }: { lojas: LojaDoChat[] }) {
+  return (
+    <ul className="mt-2 flex flex-wrap gap-1.5" aria-label="Lojas">
+      {lojas.map((loja) => {
+        const distancia = textoDistancia(loja.distancia_km)
+        const nome = loja.marca ?? loja.nome
+        return (
+          <li key={`${nome}-${loja.distancia_km}`}>
+            <a
+              href={loja.url}
+              target="_blank"
+              rel="noreferrer"
+              aria-label={`Como chegar em ${nome}`}
+              className="inline-flex max-w-[16rem] items-center gap-1.5 rounded-full border border-line bg-white py-1 pl-1 pr-3 text-xs text-ink transition hover:border-brand-600"
+            >
+              <LogoDaLoja loja={{ id: 0, nome: loja.nome, marca: loja.marca, icone: loja.icone, endereco: '' }} tamanho="sm" />
+              <span className="truncate font-semibold">{nome}</span>
+              {distancia && <span className="shrink-0 text-muted">· {distancia}</span>}
+            </a>
+          </li>
+        )
+      })}
+    </ul>
+  )
+}
 
 
 const SUGESTOES = [
@@ -42,9 +98,9 @@ function AssistentePrecos() {
     setErro('')
     setEnviando(true)
     try {
-      const { resposta, fonte, fontes } = await perguntarAoAssistente(historico, localizacao.origem)
+      const { resposta, fonte, fontes, produtos, lojas } = await perguntarAoAssistente(historico, localizacao.origem)
       setFonte(fonte)
-      setMensagens([...historico, { papel: 'assistente', texto: resposta, fontes }])
+      setMensagens([...historico, { papel: 'assistente', texto: resposta, fontes, produtos, lojas }])
     } catch (falha) {
       setErro(falha instanceof Error ? falha.message : 'O assistente não respondeu.')
     } finally {
@@ -115,9 +171,16 @@ function AssistentePrecos() {
                 >
                   {mensagem.texto}
                 </p>
-                {mensagem.fontes && mensagem.fontes.length > 0 && (
+                {mensagem.produtos && mensagem.produtos.length > 0 && (
+                  <ProdutosDaResposta produtos={mensagem.produtos} />
+                )}
+                {mensagem.lojas && mensagem.lojas.length > 0 && (
+                  <LojasDaResposta lojas={mensagem.lojas} />
+                )}
+                {/* Os lugares do mapa já aparecem nas lojas: aqui, só a internet. */}
+                {mensagem.fontes && mensagem.fontes.some((f) => f.tipo !== 'maps' || !mensagem.lojas?.length) && (
                   <ul className="mt-1.5 flex flex-wrap gap-1.5" aria-label="Fontes da resposta">
-                    {mensagem.fontes.map((fonteDaResposta) => (
+                    {mensagem.fontes.filter((f) => f.tipo !== 'maps' || !mensagem.lojas?.length).map((fonteDaResposta) => (
                       <li key={fonteDaResposta.url}>
                         <a
                           href={fonteDaResposta.url}
