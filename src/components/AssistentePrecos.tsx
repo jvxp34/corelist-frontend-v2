@@ -153,6 +153,11 @@ function AssistentePrecos() {
       </div>
 
       {localizacao.origem && <OndeEstou origem={localizacao.origem} />}
+      {localizacao.mensagem && (
+        <p role="alert" className="mt-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+          {localizacao.mensagem}
+        </p>
+      )}
 
       {mensagens.length > 0 && (
         <div

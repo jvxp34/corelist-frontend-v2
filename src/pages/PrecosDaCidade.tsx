@@ -342,13 +342,10 @@ function PrecosDaCidade() {
             <OndeEstou origem={origem} />
           </div>
         )}
-        {localizacao.estado === 'negada' && (
-          <p className="w-full text-sm text-amber-800">
-            O navegador não liberou sua localização. Libere nas permissões do site para ver as lojas perto de você.
+        {localizacao.mensagem && (
+          <p role="alert" className="w-full rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+            {localizacao.mensagem}
           </p>
-        )}
-        {localizacao.estado === 'indisponivel' && (
-          <p className="w-full text-sm text-amber-800">Não foi possível obter sua localização agora.</p>
         )}
       </div>
 
