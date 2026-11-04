@@ -160,7 +160,24 @@ export async function removerProduto(id: number): Promise<void> {
 }
 
 
-// Lixeira num produto que a pessoa não pode apagar: some só da tela dela.
+// Põe nos seus produtos um produto que já existe (código de barras já cadastrado).
+export async function adicionarAosMeusProdutos(id: number): Promise<Product> {
+  const response = await apiFetch(`${API_URL}/products/${id}/adicionar/`, {
+    method: 'POST',
+    headers: getAuthHeaders(),
+  })
+
+  if (!response.ok) {
+    throw new Error(
+      await mensagemDeErro(response, 'Não foi possível adicionar o produto.'),
+    )
+  }
+
+  return response.json()
+}
+
+
+// Lixeira num produto que a pessoa não pode apagar: sai só dos produtos dela.
 export async function esconderProduto(id: number): Promise<void> {
   const response = await apiFetch(`${API_URL}/products/${id}/esconder/`, {
     method: 'POST',

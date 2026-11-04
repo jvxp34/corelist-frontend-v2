@@ -6,6 +6,7 @@ import {
   criarProduto,
   removerProduto,
   esconderProduto,
+  adicionarAosMeusProdutos,
   buscarPorCodigoDeBarras,
   NOME_DA_ORIGEM,
   type OrigemDosDados,
@@ -19,7 +20,6 @@ import { embalagemDoProduto, formatarMoeda } from '../utils/formatar'
 import CreditoOpenFoodFacts from '../components/CreditoOpenFoodFacts'
 import AdicionarFoto from '../components/AdicionarFoto'
 import LeitorDeCodigo from '../components/LeitorDeCodigo'
-import { useUsuario } from '../hooks/useUsuario'
 import { useConfirmacao } from '../hooks/useConfirmacao'
 
 
@@ -44,8 +44,6 @@ interface AvisoBusca {
 
 
 function Products() {
-  const usuario = useUsuario()
-  const podeApagar = usuario?.is_staff === true
   const confirmar = useConfirmacao()
 
   const [produtos, setProdutos] =
@@ -132,9 +130,17 @@ function Products() {
       const resultado = await buscarPorCodigoDeBarras(codigoLimpo)
 
       if (resultado.origem === 'catalogo') {
+        // O produto já existe: entra nos seus produtos sem duplicar.
+        const produto = await adicionarAosMeusProdutos(resultado.produto.id)
+        setProdutos((atuais) =>
+          (atuais ?? []).some((item) => item.id === produto.id)
+            ? atuais
+            : [...(atuais ?? []), produto],
+        )
+        setCodigo('')
         setAvisoBusca({
-          tipo: 'info',
-          texto: `"${resultado.produto.name}" já está no catálogo com este código. Não precisa cadastrar de novo.`,
+          tipo: 'ok',
+          texto: `"${produto.name}" foi adicionado aos seus produtos.`,
         })
         return
       }
@@ -204,16 +210,14 @@ function Products() {
 
 
   async function remover(produto: Product) {
-    // Apaga de vez quando dá (cadastro seu ainda sem uso, ou administrador);
-    // senão, o produto some só da sua tela: o catálogo é de todos.
-    const apagar = podeApagar || produto.pode_remover === true
+    // Apaga de vez quando só você usa e ele ainda não entrou em lista nem
+    // em nota; senão, sai só dos seus produtos.
+    const apagar = produto.pode_remover === true
     const confirmou = await confirmar({
       titulo: `Remover "${produto.name}"?`,
       mensagem: apagar
-        ? podeApagar
-          ? 'O produto sai do catálogo para todos os usuários. Produtos que já estão em alguma lista não podem ser removidos.'
-          : 'Você cadastrou este produto e ele ainda não foi usado: ele sai do catálogo.'
-        : 'O produto sai da sua tela de produtos e da sua busca. Suas listas e compras continuam como estão.',
+        ? 'O produto ainda não foi usado: ele é apagado.'
+        : 'O produto sai dos seus produtos e da sua busca. Suas listas e compras continuam como estão.',
       textoConfirmar: 'Remover',
       perigoso: true,
     })
@@ -305,8 +309,8 @@ function Products() {
           </h1>
 
           <p className="mt-1 text-muted">
-            O catálogo de produtos que você pode colocar nas
-            listas.
+            Os seus produtos: os que você cadastrou ou já usou
+            nas suas listas. Só você vê.
           </p>
         </div>
 
@@ -610,7 +614,7 @@ function Products() {
                           type="button"
                           onClick={() => remover(produto)}
                           aria-label={`Remover ${produto.name}`}
-                          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-slate-400 transition hover:bg-red-50 hover:text-red-700"
+                          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-line text-slate-600 transition hover:border-red-200 hover:bg-red-50 hover:text-red-700"
                         >
                           <Trash2 size={18} aria-hidden="true" />
                         </button>
