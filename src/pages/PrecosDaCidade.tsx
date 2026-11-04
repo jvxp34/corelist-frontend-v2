@@ -102,7 +102,7 @@ function CartaoDoProduto({ resumo }: { resumo: ResumoDePreco }) {
   const [produto, setProduto] = useState(resumo.produto)
   const { mais_barato_agora: agora, menor_no_periodo: menor } = resumo
   const detalhes = [produto.brand, produto.embalagem].filter(Boolean).join(' · ')
-  // Sem preço de hoje ou ontem: mostra o mais barato entre os últimos preços
+  // Sem preço da última semana: mostra o mais barato entre os últimos preços
   // de cada loja (mesma medida), com o aviso de que pode ter mudado.
   const visto = agora ? null : maisBaratoVisto(resumo.lojas)
 
@@ -181,7 +181,7 @@ function CartaoDoProduto({ resumo }: { resumo: ResumoDePreco }) {
         </p>
       )}
 
-      {/* As lojas do mais barato ao mais caro (preços de hoje primeiro). */}
+      {/* As lojas do mais barato ao mais caro (preços da última semana primeiro). */}
       {resumo.lojas.length > 1 && (
         <>
           <p className="mt-3 text-xs font-semibold uppercase tracking-wide text-muted">

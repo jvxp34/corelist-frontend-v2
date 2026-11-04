@@ -29,7 +29,7 @@ export interface PrecoNaLoja {
   preco: string
   medida: Medida
   data: string
-  // Mais de 1 dia: o preço pode ter mudado.
+  // Mais de 7 dias: o preço pode ter mudado.
   desatualizado: boolean
 }
 
