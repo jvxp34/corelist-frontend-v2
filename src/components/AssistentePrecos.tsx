@@ -75,8 +75,8 @@ const SUGESTOES = [
 
 
 // Chat do Início: pergunta onde comprar mais barato. A IA (Gemini ou Groq,
-// grátis) consulta os mercados perto (OpenStreetMap), promoções na internet
-// (Tavily) e os preços das notas fiscais; as fontes aparecem na resposta.
+// grátis) responde com o histórico de preços das notas fiscais lidas no app;
+// os mercados perto (OpenStreetMap) servem só para a rota.
 function AssistentePrecos() {
   const [mensagens, setMensagens] = useState<MensagemDoChat[]>([])
   const [texto, setTexto] = useState('')
@@ -262,7 +262,7 @@ function AssistentePrecos() {
       </form>
 
       <p className="mt-2 text-xs text-muted">
-        Mercados do OpenStreetMap, promoções da internet e preços das notas fiscais do app; os preços podem ter mudado.
+        Os preços vêm das notas fiscais lidas no app e podem ter mudado. Os mercados do mapa (OpenStreetMap) servem só para a rota.
         {fonte === 'gemini' && ' Resposta escrita pelo Gemini, do Google.'}
         {fonte === 'groq' && ' Resposta escrita por um modelo aberto, via Groq.'}
         {fonte === 'claude' && ' Resposta escrita pelo Claude, da Anthropic.'}
