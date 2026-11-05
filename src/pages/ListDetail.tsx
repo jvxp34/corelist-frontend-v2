@@ -4,7 +4,7 @@ import {
   useNavigate,
   useParams,
 } from 'react-router-dom'
-import { ChevronLeft, QrCode } from 'lucide-react'
+import { Check, ChevronLeft, QrCode } from 'lucide-react'
 
 import {
   listarListas,
@@ -746,6 +746,9 @@ function ListDetail() {
     }
 
     const naoComprado = lista?.is_completed && !item.is_completed
+    // Compra concluída (ex.: nota fiscal lida): o que está na nota foi
+    // comprado e aparece normal, com o selo, sem riscar.
+    const compradoNaCompraConcluida = lista?.is_completed && item.is_completed && !podeEditar
     const valor =
       item.price === null
         ? podeEditar
@@ -758,7 +761,7 @@ function ListDetail() {
     const corValor =
       item.price === null
         ? 'bg-amber-50 text-amber-800'
-        : item.is_completed
+        : item.is_completed && !compradoNaCompraConcluida
           ? 'bg-transparent text-muted'
           : 'bg-canvas text-ink'
 
@@ -768,14 +771,24 @@ function ListDetail() {
         className="flex items-center gap-3 rounded-2xl border border-line bg-white px-3 py-2 sm:px-4"
       >
         <label className="flex min-h-12 min-w-0 flex-1 cursor-pointer items-center gap-3">
-          <input
-            type="checkbox"
-            aria-label={`${item.is_completed ? 'Tirar do carrinho' : 'Marcar como pego'}: ${nome}`}
-            checked={item.is_completed}
-            onChange={() => alternarProduto(item)}
-            disabled={!podeEditar || concluindo}
-            className="h-6 w-6 shrink-0 accent-brand-600"
-          />
+          {compradoNaCompraConcluida ? (
+            <span
+              role="img"
+              aria-label="Comprado"
+              className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-brand-600 text-white"
+            >
+              <Check size={15} strokeWidth={3} aria-hidden="true" />
+            </span>
+          ) : (
+            <input
+              type="checkbox"
+              aria-label={`${item.is_completed ? 'Tirar do carrinho' : 'Marcar como pego'}: ${nome}`}
+              checked={item.is_completed}
+              onChange={() => alternarProduto(item)}
+              disabled={!podeEditar || concluindo}
+              className="h-6 w-6 shrink-0 accent-brand-600"
+            />
+          )}
 
           <span className="min-w-0">
             {detalhes && (
@@ -786,7 +799,7 @@ function ListDetail() {
 
             <span
               className={`line-clamp-2 text-base font-semibold leading-snug ${
-                item.is_completed
+                item.is_completed && !compradoNaCompraConcluida
                   ? 'text-slate-400 line-through'
                   : 'text-ink'
               }`}
@@ -1029,7 +1042,8 @@ function ListDetail() {
               {' · '}
             </>
           )}
-          {noCarrinho.length} de {itens.length} no carrinho
+          {noCarrinho.length} de {itens.length}{' '}
+          {lista.is_completed ? 'comprados' : 'no carrinho'}
         </p>
 
         {semPreco > 0 && (
@@ -1172,11 +1186,11 @@ function ListDetail() {
 
           {noCarrinho.length > 0 && (
             <section
-              aria-label="No carrinho"
+              aria-label={lista.is_completed ? 'Comprados' : 'No carrinho'}
               className="mt-6"
             >
               <h2 className="mb-2 px-1 text-xs font-semibold uppercase tracking-wider text-muted">
-                No carrinho · {noCarrinho.length}
+                {lista.is_completed ? 'Comprados' : 'No carrinho'} · {noCarrinho.length}
               </h2>
 
               <ul className="space-y-2">
