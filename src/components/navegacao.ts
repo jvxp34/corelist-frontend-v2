@@ -20,9 +20,9 @@ export interface ItemDeMenu {
 // da API.
 export const itensDoMenu: ItemDeMenu[] = [
   { to: '/dashboard', label: 'Início', labelCurto: 'Início', icon: Home },
-  { to: '/listas', label: 'Minhas listas', labelCurto: 'Listas', icon: List },
-  { to: '/produtos', label: 'Produtos', labelCurto: 'Produtos', icon: ShoppingBasket },
   { to: '/promocoes', label: 'Produtos com menor preço', labelCurto: 'Menor preço', icon: Tag },
   { to: '/scanner', label: 'Ler nota fiscal', labelCurto: 'Ler nota', icon: ScanLine },
   { to: '/relatorios', label: 'Meus gastos', labelCurto: 'Gastos', icon: BarChart3 },
+  { to: '/listas', label: 'Minhas listas', labelCurto: 'Listas', icon: List },
+  { to: '/produtos', label: 'Produtos', labelCurto: 'Produtos', icon: ShoppingBasket },
 ]

@@ -1,7 +1,7 @@
 {
   "name": "CompraFácil",
   "short_name": "CompraFácil",
-  "description": "Sua lista de compras com o orçamento sob controle.",
+  "description": "Descubra onde cada produto está mais barato em Manaus, com os preços das notas fiscais.",
   "lang": "pt-BR",
   "start_url": "/dashboard",
   "scope": "/",

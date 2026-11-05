@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { ChevronDown, ChevronUp, MapPin, Navigation, Search, X } from 'lucide-react'
 
 import AdicionarFoto from '../components/AdicionarFoto'
@@ -214,7 +214,8 @@ function CartaoDoProduto({ resumo }: { resumo: ResumoDePreco }) {
 // Preços de Manaus a partir das notas fiscais: onde está mais barato agora e
 // o menor preço em 7, 30 ou 90 dias (docs/PLANO_PRECOS_DA_CIDADE.md).
 function PrecosDaCidade() {
-  const [texto, setTexto] = useState('')
+  const [parametros] = useSearchParams()
+  const [texto, setTexto] = useState(() => parametros.get('q') ?? '')
   const [dias, setDias] = useState<Periodo>(30)
   const [resultados, setResultados] = useState<ResumoDePreco[] | null>(null)
   const [erro, setErro] = useState('')

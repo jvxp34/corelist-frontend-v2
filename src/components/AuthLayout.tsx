@@ -5,9 +5,9 @@ import Logo from './Logo'
 
 
 const VANTAGENS = [
-  'Listas de compras com orçamento',
-  'Saldo e alerta antes de passar do limite',
-  'Histórico com os preços que você pagou',
+  'Preços reais das notas fiscais de Manaus',
+  'Os mercados mais baratos perto de você',
+  'Seus gastos mês a mês, sem digitar nada',
 ]
 
 
@@ -51,7 +51,7 @@ function AuthLayout({
 
         <div className="max-w-md">
           <p className="font-display text-4xl font-bold leading-tight tracking-tight xl:text-[44px]">
-            Suas compras organizadas. Seu orçamento sob controle.
+            Descubra onde cada produto está mais barato em Manaus.
           </p>
 
           <ul className="mt-8 space-y-3">

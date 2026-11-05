@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
+import { ScanLine, Search } from 'lucide-react'
 
 import { useUsuario } from '../hooks/useUsuario'
 import InstalarApp from '../components/InstalarApp'
@@ -47,6 +48,9 @@ const CARD =
 
 const BOTAO_PRINCIPAL =
   'inline-flex h-11 items-center rounded-xl bg-brand-600 px-5 text-[15px] font-semibold text-white transition hover:bg-brand-700'
+
+const BOTAO_SECUNDARIO =
+  'inline-flex h-11 items-center rounded-xl border border-line bg-white px-5 text-[15px] font-semibold text-ink transition hover:bg-canvas'
 
 const LINK =
   'text-sm font-semibold text-brand-600 hover:text-brand-800'
@@ -167,14 +171,23 @@ function Dashboard() {
           </p>
 
           <h1 className="mt-1.5 font-display text-[28px] font-bold leading-tight tracking-tight sm:text-[32px]">
-            Olá{nome ? `, ${nome}` : ''}! O que vamos comprar hoje?
+            Olá{nome ? `, ${nome}` : ''}! Onde está mais barato hoje?
           </h1>
         </div>
 
-        <Link to="/listas?nova=1" className={BOTAO_PRINCIPAL}>
-          + Nova lista
-        </Link>
+        <div className="flex flex-wrap gap-2">
+          <Link to="/scanner" className={`${BOTAO_PRINCIPAL} gap-2`}>
+            <ScanLine size={18} aria-hidden="true" />
+            Ler nota fiscal
+          </Link>
+          <Link to="/listas?nova=1" className={BOTAO_SECUNDARIO}>
+            + Nova lista
+          </Link>
+        </div>
       </div>
+
+
+      <BuscaDoMenorPreco />
 
 
       {!avisoInstalarFechado && (
@@ -218,6 +231,52 @@ function Dashboard() {
         </div>
       )}
     </div>
+  )
+}
+
+
+// O centro do app: digitar um produto e ver onde está mais barato em Manaus.
+function BuscaDoMenorPreco() {
+  const [produto, setProduto] = useState('')
+  const navegar = useNavigate()
+
+  return (
+    <form
+      role="search"
+      onSubmit={(evento) => {
+        evento.preventDefault()
+        const termo = produto.trim()
+        navegar(termo ? `/promocoes?q=${encodeURIComponent(termo)}` : '/promocoes')
+      }}
+      className={CARD}
+    >
+      <label htmlFor="busca-menor-preco" className="font-display text-lg font-semibold">
+        Qual produto você quer comprar?
+      </label>
+      <p className="mt-1 text-sm text-muted">
+        Veja o menor preço em cada mercado de Manaus, pelas notas fiscais lidas no app.
+      </p>
+      <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+        <div className="relative min-w-0 flex-1">
+          <Search
+            size={18}
+            aria-hidden="true"
+            className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
+          />
+          <input
+            id="busca-menor-preco"
+            type="search"
+            value={produto}
+            onChange={(evento) => setProduto(evento.target.value)}
+            placeholder="Ex.: arroz, café, leite"
+            className="h-12 w-full rounded-xl border border-line bg-white pl-11 pr-4 text-[15px] outline-none transition focus:border-brand-600 focus:ring-2 focus:ring-brand-100"
+          />
+        </div>
+        <button type="submit" className={`${BOTAO_PRINCIPAL} h-12 justify-center`}>
+          Ver menor preço
+        </button>
+      </div>
+    </form>
   )
 }
 

@@ -19,9 +19,9 @@ import { sair } from '../services/auth'
 // Abas fixas do celular; o resto fica em "Mais".
 const ROTAS_DAS_ABAS = [
   '/dashboard',
-  '/listas',
-  '/scanner',
   '/promocoes',
+  '/scanner',
+  '/listas',
 ]
 
 const ROTA_CENTRAL = '/scanner'
