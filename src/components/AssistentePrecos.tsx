@@ -69,7 +69,8 @@ function LojasDaResposta({ lojas }: { lojas: LojaDoChat[] }) {
 const SUGESTOES = [
   'Onde tem arroz mais barato perto de mim?',
   'Qual o menor preço do café?',
-  'Onde compro leite mais barato perto de mim?',
+  'Em qual mercado minha lista sai mais barata?',
+  'Quanto gastei este mês?',
 ]
 
 
