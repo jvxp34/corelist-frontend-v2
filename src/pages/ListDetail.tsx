@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import {
   Link,
+  useLocation,
   useNavigate,
   useParams,
 } from 'react-router-dom'
@@ -60,6 +61,8 @@ const ROTULO = 'text-sm font-semibold text-slate-700'
 function ListDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
+  // Lista criada a partir de uma nota fiscal, para a próxima ida ao mercado.
+  const proximaCompra = (useLocation().state as { proximaCompra?: boolean } | null)?.proximaCompra === true
   const confirmar = useConfirmacao()
 
   const listId = Number(id)
@@ -881,6 +884,13 @@ function ListDetail() {
               : 'Em andamento'}
           </p>
         </div>
+
+        {proximaCompra && !lista.is_completed && (
+          <p className="w-full rounded-xl border border-brand-100 bg-brand-50 px-4 py-3 text-sm text-brand-800">
+            Lista para a sua próxima compra, feita a partir da nota fiscal. Os produtos ainda
+            não foram comprados: marque cada um conforme for pegando no mercado.
+          </p>
+        )}
 
         <div className="flex flex-wrap gap-2">
           {!lista.is_completed && !editandoDados && (

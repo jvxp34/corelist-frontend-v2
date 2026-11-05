@@ -12,8 +12,9 @@ import { listarProdutos, type Product } from '../services/products'
 import { formatarMoeda, formatarQuantidade } from '../utils/formatar'
 
 
-// Depois de salvar uma compra pela nota fiscal: oferece criar a próxima
-// lista com os mesmos produtos. O preço pago vira o preço planejado.
+// Depois de salvar uma compra pela nota fiscal: primeiro mostra a compra
+// salva (tudo comprado); criar a próxima lista com os mesmos produtos é só
+// uma opção. O preço pago vira o preço planejado.
 function SugerirProximaLista({ compraId }: { compraId: number }) {
   const navigate = useNavigate()
 
@@ -23,6 +24,7 @@ function SugerirProximaLista({ compraId }: { compraId: number }) {
   const [nome, setNome] = useState('Próxima compra')
   const [criando, setCriando] = useState(false)
   const [erro, setErro] = useState('')
+  const [escolhendo, setEscolhendo] = useState(false)
 
   useEffect(() => {
     Promise.all([listarItensDaLista(compraId), listarProdutos()])
@@ -63,7 +65,8 @@ function SugerirProximaLista({ compraId }: { compraId: number }) {
         nome: nome.trim(),
         itens: [...marcados],
       })
-      navigate(`/listas/${nova.id}`)
+      // A lista nova é para a próxima ida ao mercado: abre com um aviso.
+      navigate(`/listas/${nova.id}`, { state: { proximaCompra: true } })
     } catch (falha) {
       setErro(falha instanceof Error ? falha.message : 'Não foi possível criar a lista.')
       setCriando(false)
@@ -75,13 +78,50 @@ function SugerirProximaLista({ compraId }: { compraId: number }) {
   }
 
   const todosMarcados = marcados.size === itens.length
+  const totalDaCompra = itens.reduce((soma, item) => soma + Number(item.subtotal ?? 0), 0)
+
+  if (!escolhendo) {
+    return (
+      <section aria-labelledby="titulo-compra-salva" className="mt-6">
+        <div className="rounded-2xl border border-line bg-white p-5 text-center sm:p-6">
+          <span className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-brand-600 text-white">
+            <Check size={24} strokeWidth={3} aria-hidden="true" />
+          </span>
+          <h2 id="titulo-compra-salva" className="mt-3 font-display text-xl font-semibold">
+            Compra salva
+          </h2>
+          <p className="mt-1 text-muted">
+            {itens.length} {itens.length === 1 ? 'produto salvo' : 'produtos salvos'} como comprados ·{' '}
+            {formatarMoeda(totalDaCompra)}
+          </p>
+          <p className="mt-1 text-sm text-muted">
+            Os preços desta nota já entram no menor preço de Manaus e em Meus gastos.
+          </p>
+
+          <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:justify-center">
+            <button
+              type="button"
+              onClick={() => navigate(`/listas/${compraId}`)}
+              className="h-11 rounded-xl bg-brand-600 px-5 text-[15px] font-semibold text-white transition hover:bg-brand-700"
+            >
+              Ver a compra
+            </button>
+            <button
+              type="button"
+              onClick={() => setEscolhendo(true)}
+              className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-line px-5 text-[15px] font-semibold text-ink transition hover:bg-canvas"
+            >
+              <ListPlus size={18} aria-hidden="true" />
+              Criar lista para a próxima compra
+            </button>
+          </div>
+        </div>
+      </section>
+    )
+  }
 
   return (
     <section aria-labelledby="titulo-proxima-lista" className="mt-6">
-      <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800">
-        <Check size={16} aria-hidden="true" className="mr-1.5 inline" />
-        Compra salva no histórico.
-      </div>
 
       <div className="mt-4 rounded-2xl border border-line bg-white p-4 sm:p-5">
         <div className="flex items-start gap-3">
@@ -90,11 +130,11 @@ function SugerirProximaLista({ compraId }: { compraId: number }) {
           </span>
           <div>
             <h2 id="titulo-proxima-lista" className="font-display text-xl font-semibold">
-              Criar a próxima lista com estes produtos?
+              Lista para a próxima compra
             </h2>
             <p className="mt-1 text-sm text-muted">
-              O preço que você pagou vira o preço planejado. Desmarque o que não precisa
-              comprar de novo.
+              Escolha o que você quer comprar de novo. O preço que você pagou vira o
+              preço planejado.
             </p>
           </div>
         </div>
@@ -163,11 +203,11 @@ function SugerirProximaLista({ compraId }: { compraId: number }) {
         <div className="mt-4 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
           <button
             type="button"
-            onClick={() => navigate(`/listas/${compraId}`)}
+            onClick={() => setEscolhendo(false)}
             disabled={criando}
             className="h-11 rounded-xl border border-line px-5 text-[15px] font-semibold text-ink transition hover:bg-canvas disabled:opacity-60"
           >
-            Agora não
+            Voltar
           </button>
           <button
             type="button"
