@@ -383,7 +383,8 @@ function ResumoDoMes({
         {formatarMoeda(gastoDoMes)}
       </p>
 
-      {variacao !== null && (
+      {/* Sem compra no mês ainda: comparar daria "100% a menos". */}
+      {variacao !== null && comprasDoMes.length > 0 && (
         <p
           className={`text-sm font-semibold ${
             variacao <= 0 ? 'text-green-700' : 'text-red-700'
