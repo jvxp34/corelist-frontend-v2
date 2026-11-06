@@ -22,7 +22,6 @@ import {
   type ResumoDePreco,
   type TipoDeProduto,
 } from '../services/precos'
-import type { OrigemDosDados } from '../services/products'
 import { formatarMoeda, quandoFoi } from '../utils/formatar'
 
 
@@ -108,6 +107,8 @@ function CartaoDoProduto({ resumo }: { resumo: ResumoDePreco }) {
   const { mais_barato_agora: agora, menor_no_periodo: menor } = resumo
   const nome = produto.nome_legivel || produto.name
   const porBase = resumo.preco_por
+  // Foto do tipo (Wikipédia), não da embalagem exata.
+  const ilustrativa = produto.foto_fonte === 'wikipedia'
   const detalhes = [produto.brand, produto.embalagem].filter(Boolean).join(' · ')
   // Sem preço da última semana: mostra o mais barato entre os últimos preços
   // de cada loja (mesma medida), com o aviso de que pode ter mudado.
@@ -120,12 +121,13 @@ function CartaoDoProduto({ resumo }: { resumo: ResumoDePreco }) {
         <div className="min-w-0 flex-1">
           <p className="font-semibold">{nome}</p>
           {detalhes && <p className="text-sm text-muted">{detalhes}</p>}
+          {ilustrativa && <p className="text-[11px] text-muted">Foto ilustrativa</p>}
           {porBase && (
             <p className="text-sm font-semibold text-brand-800">
               {formatarMoeda(Number(porBase.valor))} por {porBase.unidade === 'kg' ? 'kg' : 'litro'}
             </p>
           )}
-          {!produto.image_url && (
+          {(!produto.image_url || ilustrativa) && (
             <div className="mt-1">
               <AdicionarFoto
                 produtoId={produto.id}
@@ -136,6 +138,7 @@ function CartaoDoProduto({ resumo }: { resumo: ResumoDePreco }) {
                     brand: novo.brand,
                     embalagem: (novo.package_size || novo.unit || '').trim(),
                     image_url: novo.image_url,
+                    foto_fonte: '',
                   })
                 }
               />
@@ -306,8 +309,8 @@ function PrecosDaCidade() {
   }, [texto, dias, origem, raio, tipoEscolhido])
 
   const origensDasFotos = (resultados ?? [])
-    .map((resumo) => resumo.produto.foto_fonte)
-    .filter((fonte): fonte is OrigemDosDados => Boolean(fonte))
+    .map((resumo) => resumo.produto.foto_fonte ?? '')
+    .filter(Boolean)
 
   const termo = texto.trim()
 

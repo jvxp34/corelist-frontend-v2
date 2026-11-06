@@ -287,8 +287,9 @@ function Products() {
   )
 
   // Bases externas usadas na tela (para o crédito exigido pela licença).
-  const origensNaTela: OrigemDosDados[] = [
+  const origensNaTela: string[] = [
     ...(produtos ?? []).map((produto) => produto.data_source),
+    ...(produtos ?? []).map((produto) => produto.foto_fonte ?? ''),
     origemDados,
   ]
 

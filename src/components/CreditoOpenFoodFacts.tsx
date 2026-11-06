@@ -1,7 +1,4 @@
-import type { OrigemDosDados } from '../services/products'
-
-
-const BASES: Partial<Record<OrigemDosDados, { nome: string; url: string }>> = {
+const BASES: Record<string, { nome: string; url: string }> = {
   openfoodfacts: {
     nome: 'Open Food Facts',
     url: 'https://world.openfoodfacts.org',
@@ -14,6 +11,11 @@ const BASES: Partial<Record<OrigemDosDados, { nome: string; url: string }>> = {
     nome: 'Open Products Facts',
     url: 'https://world.openproductsfacts.org',
   },
+  // Fotos ilustrativas do tipo de produto (quando não há a foto exata).
+  wikipedia: {
+    nome: 'Wikimedia Commons (fotos ilustrativas)',
+    url: 'https://commons.wikimedia.org',
+  },
 }
 
 
@@ -22,7 +24,7 @@ const BASES: Partial<Record<OrigemDosDados, { nome: string; url: string }>> = {
 function CreditoOpenFoodFacts({
   origens,
 }: {
-  origens: OrigemDosDados[]
+  origens: string[]
 }) {
   const bases = [...new Set(origens)]
     .map((origem) => BASES[origem])
@@ -48,7 +50,7 @@ function CreditoOpenFoodFacts({
           </a>
         </span>
       ))}{' '}
-      (fotos em CC BY-SA, dados em ODbL).
+      (fotos em licenças livres, como CC BY-SA; dados em ODbL).
     </p>
   )
 }

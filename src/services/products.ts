@@ -31,6 +31,10 @@ export interface Product {
   barcode: string
   image_url: string
   data_source: OrigemDosDados
+  // Base da foto achada sozinha ('openfoodfacts', 'wikipedia' = ilustrativa).
+  foto_fonte?: string
+  nome_legivel?: string
+  tipo?: string
   created_at: string
   updated_at: string
   // Quem cadastrou (ou o administrador) pode remover, se o produto não estiver
