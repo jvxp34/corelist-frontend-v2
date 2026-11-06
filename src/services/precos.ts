@@ -40,6 +40,10 @@ export interface ResumoDePreco {
     brand: string
     embalagem: string
     image_url: string
+    // Preenchidos sozinhos para os produtos das notas.
+    nome_legivel?: string
+    tipo?: string
+    foto_fonte?: string
   }
   mais_barato_agora: PrecoNaLoja | null
   menor_no_periodo: {
@@ -50,6 +54,18 @@ export interface ResumoDePreco {
     dias: number
   } | null
   lojas: PrecoNaLoja[]
+  // Nas opções de um tipo: R$ por kg ou por litro, para comparar tamanhos.
+  preco_por?: { valor: string; unidade: 'kg' | 'L' } | null
+}
+
+
+// Um tipo de produto (Arroz, Café...) com quantas opções e lojas tem.
+export interface TipoDeProduto {
+  tipo: string
+  opcoes: number
+  lojas: number
+  a_partir_de: { preco: string; medida: Medida } | null
+  image_url: string
 }
 
 export type Periodo = 7 | 30 | 90
@@ -100,6 +116,48 @@ export async function buscarPrecos(
   const parametros = new URLSearchParams({ q: texto, dias: String(dias) })
   if (perto) {
     // 3 casas (~100 m): basta para a distância e não manda a posição exata.
+    parametros.set('lat', perto.origem.lat.toFixed(3))
+    parametros.set('lng', perto.origem.lng.toFixed(3))
+    if (perto.raio) parametros.set('raio', String(perto.raio))
+  }
+  const response = await apiFetch(`${API_URL}/lists/precos/?${parametros}`, {
+    method: 'GET',
+    signal: sinal,
+  })
+
+  if (!response.ok) {
+    throw new Error('Não foi possível buscar os preços.')
+  }
+
+  const dados: { produtos: ResumoDePreco[] } = await response.json()
+  return dados.produtos
+}
+
+
+export async function listarTipos(texto: string, sinal?: AbortSignal): Promise<TipoDeProduto[]> {
+  const response = await apiFetch(
+    `${API_URL}/lists/precos/tipos/?${new URLSearchParams({ q: texto })}`,
+    { method: 'GET', signal: sinal },
+  )
+
+  if (!response.ok) {
+    throw new Error('Não foi possível buscar os tipos de produto.')
+  }
+
+  const dados: { tipos: TipoDeProduto[] } = await response.json()
+  return dados.tipos
+}
+
+
+// As opções (marca e tamanho) de um tipo, cada uma com as lojas.
+export async function buscarOpcoesDoTipo(
+  tipo: string,
+  dias: Periodo,
+  sinal?: AbortSignal,
+  perto?: { origem: Origem; raio: Raio | null },
+): Promise<ResumoDePreco[]> {
+  const parametros = new URLSearchParams({ tipo, dias: String(dias) })
+  if (perto) {
     parametros.set('lat', perto.origem.lat.toFixed(3))
     parametros.set('lng', perto.origem.lng.toFixed(3))
     if (perto.raio) parametros.set('raio', String(perto.raio))

@@ -1,15 +1,18 @@
 import { useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { ChevronDown, ChevronUp, MapPin, Navigation, Search, X } from 'lucide-react'
+import { ChevronDown, ChevronLeft, ChevronUp, MapPin, Navigation, Search, X } from 'lucide-react'
 
 import AdicionarFoto from '../components/AdicionarFoto'
+import CreditoOpenFoodFacts from '../components/CreditoOpenFoodFacts'
 import FotoProduto from '../components/FotoProduto'
 import LogoDaLoja from '../components/LogoDaLoja'
 import OndeEstou from '../components/OndeEstou'
 import { useLocalizacao } from '../hooks/useLocalizacao'
 import {
+  buscarOpcoesDoTipo,
   buscarPrecos,
   linkComoChegar,
+  listarTipos,
   nomeDaLojaParaMostrar,
   textoDistancia,
   type LojaDoPreco,
@@ -17,7 +20,9 @@ import {
   type PrecoNaLoja,
   type Raio,
   type ResumoDePreco,
+  type TipoDeProduto,
 } from '../services/precos'
+import type { OrigemDosDados } from '../services/products'
 import { formatarMoeda, quandoFoi } from '../utils/formatar'
 
 
@@ -101,6 +106,8 @@ function CartaoDoProduto({ resumo }: { resumo: ResumoDePreco }) {
   const [aberto, setAberto] = useState(false)
   const [produto, setProduto] = useState(resumo.produto)
   const { mais_barato_agora: agora, menor_no_periodo: menor } = resumo
+  const nome = produto.nome_legivel || produto.name
+  const porBase = resumo.preco_por
   const detalhes = [produto.brand, produto.embalagem].filter(Boolean).join(' · ')
   // Sem preço da última semana: mostra o mais barato entre os últimos preços
   // de cada loja (mesma medida), com o aviso de que pode ter mudado.
@@ -109,15 +116,20 @@ function CartaoDoProduto({ resumo }: { resumo: ResumoDePreco }) {
   return (
     <li className="rounded-2xl border border-line bg-white p-4 sm:p-5">
       <div className="flex items-start gap-3">
-        <FotoProduto url={produto.image_url} nome={produto.name} tamanho="md" />
+        <FotoProduto url={produto.image_url} nome={nome} tamanho="md" />
         <div className="min-w-0 flex-1">
-          <p className="font-semibold">{produto.name}</p>
+          <p className="font-semibold">{nome}</p>
           {detalhes && <p className="text-sm text-muted">{detalhes}</p>}
+          {porBase && (
+            <p className="text-sm font-semibold text-brand-800">
+              {formatarMoeda(Number(porBase.valor))} por {porBase.unidade === 'kg' ? 'kg' : 'litro'}
+            </p>
+          )}
           {!produto.image_url && (
             <div className="mt-1">
               <AdicionarFoto
                 produtoId={produto.id}
-                nome={produto.name}
+                nome={nome}
                 aoCompletar={(novo) =>
                   setProduto({
                     ...produto,
@@ -213,24 +225,74 @@ function CartaoDoProduto({ resumo }: { resumo: ResumoDePreco }) {
 
 // Preços de Manaus a partir das notas fiscais: onde está mais barato agora e
 // o menor preço em 7, 30 ou 90 dias (docs/PLANO_PRECOS_DA_CIDADE.md).
+function CartaoDoTipo({ tipo, aoEscolher }: { tipo: TipoDeProduto; aoEscolher: () => void }) {
+  return (
+    <li>
+      <button
+        type="button"
+        onClick={aoEscolher}
+        className="flex w-full items-center gap-3 rounded-2xl border border-line bg-white p-3 text-left transition hover:border-brand-600"
+      >
+        <FotoProduto url={tipo.image_url} nome={tipo.tipo} tamanho="sm" />
+        <span className="min-w-0 flex-1">
+          <span className="block truncate font-semibold">{tipo.tipo}</span>
+          <span className="block truncate text-xs text-muted">
+            {tipo.opcoes} {tipo.opcoes === 1 ? 'opção' : 'opções'} · {tipo.lojas}{' '}
+            {tipo.lojas === 1 ? 'loja' : 'lojas'}
+          </span>
+        </span>
+        {tipo.a_partir_de && (
+          <span className="shrink-0 text-right text-xs text-muted">
+            a partir de
+            <span className="block text-sm font-semibold tabular-nums text-ink">
+              {precoComMedida(tipo.a_partir_de.preco, tipo.a_partir_de.medida)}
+            </span>
+          </span>
+        )}
+      </button>
+    </li>
+  )
+}
+
+
+// Preços de Manaus a partir das notas fiscais. Sem busca: os tipos de produto
+// (Arroz, Café...). Num tipo: as marcas e tamanhos, cada um com as lojas do
+// mais barato ao mais caro (docs/PLANO_PRECOS_DA_CIDADE.md).
 function PrecosDaCidade() {
-  const [parametros] = useSearchParams()
+  const [parametros, setParametros] = useSearchParams()
   const [texto, setTexto] = useState(() => parametros.get('q') ?? '')
+  const tipoEscolhido = parametros.get('tipo')
   const [dias, setDias] = useState<Periodo>(30)
   const [resultados, setResultados] = useState<ResumoDePreco[] | null>(null)
+  const [tipos, setTipos] = useState<TipoDeProduto[] | null>(null)
   const [erro, setErro] = useState('')
   const localizacao = useLocalizacao()
   const [raio, setRaio] = useState<Raio | null>(5)
   const origem = localizacao.origem
 
+  function escolherTipo(tipo: string | null) {
+    setParametros(tipo ? { tipo } : texto.trim() ? { q: texto.trim() } : {})
+    window.scrollTo({ top: 0 })
+  }
+
   useEffect(() => {
     const controle = new AbortController()
+    const perto = origem ? { origem, raio } : undefined
+    const busca = texto.trim()
     const espera = setTimeout(() => {
-      buscarPrecos(texto.trim(), dias, controle.signal, origem ? { origem, raio } : undefined)
-        .then((dados) => {
-          setResultados(dados)
-          setErro('')
-        })
+      const pedidos: Promise<unknown>[] = []
+      if (tipoEscolhido) {
+        pedidos.push(buscarOpcoesDoTipo(tipoEscolhido, dias, controle.signal, perto).then(setResultados))
+      } else {
+        pedidos.push(listarTipos(busca, controle.signal).then(setTipos))
+        if (busca) {
+          pedidos.push(buscarPrecos(busca, dias, controle.signal, perto).then(setResultados))
+        } else {
+          setResultados([])
+        }
+      }
+      Promise.all(pedidos)
+        .then(() => setErro(''))
         .catch((falha) => {
           if (falha instanceof Error && falha.name !== 'AbortError') {
             setErro(falha.message)
@@ -241,14 +303,28 @@ function PrecosDaCidade() {
       clearTimeout(espera)
       controle.abort()
     }
-  }, [texto, dias, origem, raio])
+  }, [texto, dias, origem, raio, tipoEscolhido])
+
+  const origensDasFotos = (resultados ?? [])
+    .map((resumo) => resumo.produto.foto_fonte)
+    .filter((fonte): fonte is OrigemDosDados => Boolean(fonte))
 
   const termo = texto.trim()
 
   return (
     <div className="mx-auto max-w-3xl">
+      {tipoEscolhido && (
+        <button
+          type="button"
+          onClick={() => escolherTipo(null)}
+          className="-ml-1 mb-1 inline-flex h-10 items-center gap-1 rounded-lg pr-2 text-sm font-semibold text-muted hover:text-ink"
+        >
+          <ChevronLeft size={18} aria-hidden="true" />
+          Todos os produtos
+        </button>
+      )}
       <h1 className="font-display text-[28px] font-bold tracking-tight sm:text-[32px]">
-        Produtos com menor preço
+        {tipoEscolhido ?? 'Produtos com menor preço'}
       </h1>
       <p className="mt-2 text-muted">
         Preços reais de Manaus, das notas fiscais lidas no CompraFácil. Ninguém vê quem
@@ -256,7 +332,7 @@ function PrecosDaCidade() {
       </p>
 
       <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center">
-        <div className="relative min-w-0 flex-1">
+        <div className={`relative min-w-0 flex-1 ${tipoEscolhido ? 'hidden' : ''}`}>
           <Search
             size={18}
             aria-hidden="true"
@@ -356,11 +432,24 @@ function PrecosDaCidade() {
         </p>
       )}
 
+      {!tipoEscolhido && tipos !== null && tipos.length > 0 && (
+        <section aria-label="Tipos de produto" className="mt-6">
+          <h2 className="mb-2 px-1 text-xs font-semibold uppercase tracking-wider text-muted">
+            {termo ? 'Tipos de produto' : 'Escolha um produto'}
+          </h2>
+          <ul className="grid gap-2 sm:grid-cols-2">
+            {tipos.map((tipo) => (
+              <CartaoDoTipo key={tipo.tipo} tipo={tipo} aoEscolher={() => escolherTipo(tipo.tipo)} />
+            ))}
+          </ul>
+        </section>
+      )}
+
       {resultados === null && !erro && (
         <p className="mt-6 text-center text-muted">Buscando preços...</p>
       )}
 
-      {resultados !== null && resultados.length === 0 && (
+      {resultados !== null && resultados.length === 0 && (tipoEscolhido || termo || (tipos !== null && tipos.length === 0)) && (
         <div className="mt-6 rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center">
           <p className="font-display text-lg font-semibold">
             {origem && raio
@@ -381,17 +470,23 @@ function PrecosDaCidade() {
 
       {resultados !== null && resultados.length > 0 && (
         <>
-          {!termo && (
-            <h2 className="mb-2 mt-6 px-1 text-xs font-semibold uppercase tracking-wider text-muted">
-              Preços mais recentes
-            </h2>
-          )}
-          <ul className={`space-y-3 ${termo ? 'mt-6' : ''}`}>
+          <h2 className="mb-2 mt-6 px-1 text-xs font-semibold uppercase tracking-wider text-muted">
+            {tipoEscolhido
+              ? `${resultados.length} ${resultados.length === 1 ? 'opção' : 'opções'}, da mais barata por kg ou litro`
+              : 'Produtos'}
+          </h2>
+          <ul className="space-y-3">
             {resultados.map((resumo) => (
               <CartaoDoProduto key={resumo.produto.id} resumo={resumo} />
             ))}
           </ul>
         </>
+      )}
+
+      {origensDasFotos.length > 0 && (
+        <div className="mt-4">
+          <CreditoOpenFoodFacts origens={origensDasFotos} />
+        </div>
       )}
 
       <p className="mt-8 text-center text-sm">
