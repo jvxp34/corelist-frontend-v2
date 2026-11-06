@@ -12,12 +12,11 @@ import { nomeDeExibicao } from '../services/auth'
 import {
   listarListas,
   obterHistorico,
-  obterPromocoes,
   obterResumoListas,
   type List,
   type ListSummaryCategory,
-  type Promotion,
 } from '../services/lists'
+import { buscarPrecos, nomeDaLojaParaMostrar, type ResumoDePreco } from '../services/precos'
 import {
   formatarData,
   formatarMoeda,
@@ -60,7 +59,8 @@ interface DadosInicio {
   listasAtivas: List[]
   historico: List[]
   categorias: ListSummaryCategory[]
-  promocoes: Promotion[]
+  totalGasto: number
+  precos: ResumoDePreco[]
 }
 
 
@@ -101,8 +101,8 @@ function Dashboard() {
       listarListas(),
       obterHistorico(),
       obterResumoListas(),
-      obterPromocoes(),
-    ]).then(([listas, historico, resumo, promocoes]) => {
+      buscarPrecos('', 30),
+    ]).then(([listas, historico, resumo, precos]) => {
       if (cancelado) {
         return
       }
@@ -137,9 +137,13 @@ function Dashboard() {
           resumo.status === 'fulfilled'
             ? resumo.value.categories
             : [],
-        promocoes:
-          promocoes.status === 'fulfilled'
-            ? promocoes.value
+        totalGasto:
+          resumo.status === 'fulfilled'
+            ? Number(resumo.value.total)
+            : 0,
+        precos:
+          precos.status === 'fulfilled'
+            ? precos.value
             : [],
       })
     })
@@ -223,9 +227,9 @@ function Dashboard() {
             hoje={hoje}
           />
 
-          <Categorias categorias={dados.categorias} />
+          <Categorias categorias={dados.categorias} totalGasto={dados.totalGasto} />
 
-          <MenorPreco promocoes={dados.promocoes} />
+          <MenorPreco precos={dados.precos} />
 
           <UltimasCompras historico={dados.historico} />
         </div>
@@ -483,8 +487,10 @@ function ResumoDoMes({
 
 function Categorias({
   categorias,
+  totalGasto,
 }: {
   categorias: ListSummaryCategory[]
+  totalGasto: number
 }) {
   const ordenadas = [...categorias]
     .map((categoria) => ({
@@ -499,8 +505,11 @@ function Categorias({
     .slice(3)
     .reduce((total, categoria) => total + categoria.total, 0)
 
-  if (outros > 0) {
-    principais.push({ nome: 'Outros', total: outros })
+  // Produtos sem categoria (ex.: ração, descartáveis) também contam.
+  const semCategoria = totalGasto - ordenadas.reduce((total, categoria) => total + categoria.total, 0)
+
+  if (outros + Math.max(semCategoria, 0) > 0.01) {
+    principais.push({ nome: 'Outros', total: outros + Math.max(semCategoria, 0) })
   }
 
   const soma = principais.reduce(
@@ -558,28 +567,21 @@ function Categorias({
 }
 
 
+// Menor preço de Manaus pelas notas fiscais (as mais recentes lidas no app).
 function MenorPreco({
-  promocoes,
+  precos,
 }: {
-  promocoes: Promotion[]
+  precos: ResumoDePreco[]
 }) {
-  const principais = promocoes
-    .map((promocao) => {
-      const media = Number(promocao.historical_average)
-      const preco = Number(promocao.current_price)
-
-      return {
-        id: promocao.item_id,
-        nome: promocao.product,
-        preco,
-        desconto:
-          media > 0
-            ? Math.round(((media - preco) / media) * 100)
-            : 0,
-      }
+  const principais = precos
+    .map((resumo) => {
+      const melhor =
+        resumo.mais_barato_agora ??
+        [...resumo.lojas].sort((a, b) => Number(a.preco) - Number(b.preco))[0]
+      return melhor ? { resumo, melhor } : null
     })
-    .sort((a, b) => b.desconto - a.desconto)
-    .slice(0, 3)
+    .filter((linha) => linha !== null)
+    .slice(0, 4)
 
   return (
     <section
@@ -588,7 +590,7 @@ function MenorPreco({
     >
       <div className="flex items-baseline justify-between gap-3">
         <h2 className="text-[15px] font-semibold">
-          Produtos com menor preço
+          Menor preço em Manaus
         </h2>
 
         <Link to="/promocoes" className={LINK}>
@@ -598,27 +600,30 @@ function MenorPreco({
 
       {principais.length === 0 ? (
         <p className="mt-3 text-sm text-muted">
-          Quando um produto da sua lista estiver mais barato
-          que a média que você pagou, ele aparece aqui.
+          Os preços aparecem quando alguém lê uma nota fiscal no app.
+          Leia a nota da sua próxima compra.
         </p>
       ) : (
         <div className="mt-2">
-          {principais.map((produto) => (
-            <div
-              key={produto.id}
-              className="flex items-center gap-3 border-b border-slate-100 py-2.5 text-sm last:border-b-0"
+          {principais.map(({ resumo, melhor }) => (
+            <Link
+              key={resumo.produto.id}
+              to={`/promocoes?q=${encodeURIComponent(resumo.produto.name)}`}
+              className="flex items-center gap-3 border-b border-slate-100 py-2.5 text-sm last:border-b-0 hover:text-brand-700"
             >
-              <span className="min-w-0 flex-1 truncate font-medium">
-                {produto.nome}
-              </span>
-
-              <span className="shrink-0 tabular-nums">
-                <strong>{formatarMoeda(produto.preco)}</strong>{' '}
-                <span className="font-semibold text-green-700">
-                  -{produto.desconto}%
+              <span className="min-w-0 flex-1">
+                <span className="block truncate font-medium">{resumo.produto.name}</span>
+                <span className="block truncate text-xs text-muted">
+                  {nomeDaLojaParaMostrar(melhor.loja)}
+                  {melhor.desatualizado ? ' · pode ter mudado' : ''}
                 </span>
               </span>
-            </div>
+
+              <strong className="shrink-0 tabular-nums">
+                {formatarMoeda(Number(melhor.preco))}
+                {melhor.medida === 'kg' ? '/kg' : ''}
+              </strong>
+            </Link>
           ))}
         </div>
       )}
