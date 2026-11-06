@@ -122,6 +122,9 @@ function CartaoDoProduto({ resumo }: { resumo: ResumoDePreco }) {
           <p className="font-semibold">{nome}</p>
           {detalhes && <p className="text-sm text-muted">{detalhes}</p>}
           {ilustrativa && <p className="text-[11px] text-muted">Foto ilustrativa</p>}
+          {produto.foto_fonte === 'internet' && produto.foto_credito && (
+            <p className="truncate text-[11px] text-muted">Foto: {produto.foto_credito}</p>
+          )}
           {porBase && (
             <p className="text-sm font-semibold text-brand-800">
               {formatarMoeda(Number(porBase.valor))} por {porBase.unidade === 'kg' ? 'kg' : 'litro'}

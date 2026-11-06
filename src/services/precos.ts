@@ -44,6 +44,8 @@ export interface ResumoDePreco {
     nome_legivel?: string
     tipo?: string
     foto_fonte?: string
+    // Site de onde veio a foto achada na internet.
+    foto_credito?: string
   }
   mais_barato_agora: PrecoNaLoja | null
   menor_no_periodo: {

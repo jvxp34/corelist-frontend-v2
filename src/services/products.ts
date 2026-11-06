@@ -33,6 +33,7 @@ export interface Product {
   data_source: OrigemDosDados
   // Base da foto achada sozinha ('openfoodfacts', 'wikipedia' = ilustrativa).
   foto_fonte?: string
+  foto_credito?: string
   nome_legivel?: string
   tipo?: string
   created_at: string
