@@ -12,6 +12,18 @@ export default defineConfig(({ mode }) => ({
     tailwindcss(),
     ...(mode === 'celular' ? [basicSsl()] : []),
   ],
+  build: {
+    rollupOptions: {
+      output: {
+        // O Amplify reescreve arquivos .wasm para a página do site: o leitor
+        // de QR code (zxing-wasm) sai como .wasm.js, que ele entrega.
+        assetFileNames: (arquivo) =>
+          (arquivo.names?.[0] ?? '').endsWith('.wasm')
+            ? 'assets/[name]-[hash].wasm.js'
+            : 'assets/[name]-[hash][extname]',
+      },
+    },
+  },
   server: mode === 'celular'
     ? {
         proxy: {
