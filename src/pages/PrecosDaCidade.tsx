@@ -443,7 +443,7 @@ function PrecosDaCidade() {
           <h2 className="mb-2 px-1 text-xs font-semibold uppercase tracking-wider text-muted">
             {termo ? 'Tipos de produto' : 'Escolha um produto'}
           </h2>
-          <ul className="grid gap-2 sm:grid-cols-2">
+          <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2">
             {tipos.map((tipo) => (
               <CartaoDoTipo key={tipo.tipo} tipo={tipo} aoEscolher={() => escolherTipo(tipo.tipo)} />
             ))}

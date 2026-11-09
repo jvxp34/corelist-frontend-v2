@@ -134,7 +134,7 @@ function FormularioConta({ usuario }: { usuario: Usuario }) {
         onSubmit={salvar}
         className="mt-6 border-t border-slate-100 pt-6"
       >
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <label className={ROTULO}>
             Nome
             <input

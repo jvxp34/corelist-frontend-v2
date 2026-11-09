@@ -151,7 +151,7 @@ function Reports() {
     <div className="mx-auto max-w-4xl">
       {cabecalho}
 
-      <div className="mt-6 grid gap-3 sm:grid-cols-3">
+      <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
         <Cartao
           titulo={`Este mês (${nomeDoMes(esteMes.chave)})`}
           valor={formatarMoeda(esteMes.total)}
@@ -185,7 +185,7 @@ function Reports() {
         <GraficoMensal meses={meses} />
       </section>
 
-      <div className="mt-4 grid gap-4 lg:grid-cols-2">
+      <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
         <section className="rounded-2xl border border-line bg-white p-5 sm:p-6">
           <h2 className="font-display text-lg font-semibold">Por categoria</h2>
           {categorias.length === 0 ? (

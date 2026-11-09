@@ -22,7 +22,7 @@ function AuthLayout({
   children: React.ReactNode
 }) {
   return (
-    <div className="grid min-h-screen bg-canvas lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)]">
+    <div className="grid min-h-screen grid-cols-1 bg-canvas lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)]">
       <aside className="hidden flex-col justify-between bg-brand-600 p-12 text-white lg:flex">
         <div className="flex items-center gap-2.5">
           <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white text-brand-600">

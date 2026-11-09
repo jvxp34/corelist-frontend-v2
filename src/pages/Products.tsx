@@ -409,7 +409,7 @@ function Products() {
 
           {/* A foto encontrada é salva, mas só aparece em "Produtos com menor preço". */}
           <div className="mt-5">
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <label className={`${ROTULO} sm:col-span-2`}>
                 Nome
                 <input

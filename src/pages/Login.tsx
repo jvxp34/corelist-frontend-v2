@@ -100,14 +100,8 @@ function Login() {
             autoComplete="current-password"
             placeholder="Sua senha"
           />
-          <p className="mt-2 text-right text-sm">
-            <Link
-              to="/esqueci-senha"
-              className="font-semibold text-brand-600 hover:text-brand-800"
-            >
-              Esqueci minha senha
-            </Link>
-          </p>
+          {/* "Esqueci minha senha" volta quando o e-mail (Gmail) estiver
+              configurado no servidor; a tela /esqueci-senha continua pronta. */}
         </div>
 
         {erro && (
