@@ -31,6 +31,15 @@ export interface LojaDoChat {
   url: string
 }
 
+// Lista que o assistente criou a pedido da pessoa.
+export interface ListaCriadaPeloChat {
+  id: number
+  nome: string
+  orcamento: string | null
+  total_planejado: string
+  itens: { produto: string; quantidade: string; medida: 'unit' | 'kg'; preco_planejado: string | null }[]
+}
+
 export interface MensagemDoChat {
   papel: 'usuario' | 'assistente'
   texto: string
@@ -38,6 +47,7 @@ export interface MensagemDoChat {
   fontes?: FonteDaResposta[]
   produtos?: ProdutoDoChat[]
   lojas?: LojaDoChat[]
+  listaCriada?: ListaCriadaPeloChat | null
 }
 
 export interface RespostaDoAssistente {
@@ -47,6 +57,7 @@ export interface RespostaDoAssistente {
   fontes: FonteDaResposta[]
   produtos: ProdutoDoChat[]
   lojas: LojaDoChat[]
+  lista_criada?: ListaCriadaPeloChat | null
 }
 
 

@@ -1,12 +1,15 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react'
-import { ExternalLink, MapPin, Search, Send, Sparkles } from 'lucide-react'
+import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
+import { Link } from 'react-router-dom'
+import { ClipboardList, ExternalLink, MapPin, Mic, Search, Send, Sparkles, Square } from 'lucide-react'
 
 import FotoProduto from './FotoProduto'
 import LogoDaLoja from './LogoDaLoja'
 import OndeEstou from './OndeEstou'
 import { useLocalizacao } from '../hooks/useLocalizacao'
+import { useVoz } from '../hooks/useVoz'
 import {
   perguntarAoAssistente,
+  type ListaCriadaPeloChat,
   type LojaDoChat,
   type MensagemDoChat,
   type ProdutoDoChat,
@@ -66,11 +69,36 @@ function LojasDaResposta({ lojas }: { lojas: LojaDoChat[] }) {
 }
 
 
+// Lista que o assistente acabou de criar, com o atalho para abrir.
+function ListaCriada({ lista }: { lista: ListaCriadaPeloChat }) {
+  return (
+    <div className="mt-2 rounded-xl border border-brand-100 bg-brand-50 p-3">
+      <p className="flex items-center gap-1.5 text-sm font-semibold text-brand-800">
+        <ClipboardList size={16} aria-hidden="true" />
+        Lista criada: {lista.nome}
+      </p>
+      <p className="mt-0.5 text-xs text-muted">
+        {lista.itens.length} {lista.itens.length === 1 ? 'item' : 'itens'}
+        {Number(lista.total_planejado) > 0 && ` · planejado ${formatarMoeda(Number(lista.total_planejado))}`}
+        {lista.orcamento && ` · orçamento ${formatarMoeda(Number(lista.orcamento))}`}
+      </p>
+      <Link
+        to={`/listas/${lista.id}`}
+        className="mt-2 inline-flex items-center rounded-lg bg-brand-600 px-3 py-1.5 text-sm font-semibold text-white transition hover:bg-brand-700"
+      >
+        Abrir lista
+      </Link>
+    </div>
+  )
+}
+
+
 const SUGESTOES = [
   'Onde tem arroz mais barato perto de mim?',
   'Qual o menor preço do café?',
   'Em qual mercado minha lista sai mais barata?',
   'Quanto gastei este mês?',
+  'Crie uma lista com arroz, feijão e café',
 ]
 
 
@@ -85,30 +113,43 @@ function AssistentePrecos() {
   const [fonte, setFonte] = useState<RespostaDoAssistente['fonte'] | null>(null)
   const localizacao = useLocalizacao()
   const fim = useRef<HTMLDivElement>(null)
+  // enviar() é chamado também pela voz: lê sempre o histórico e a localização atuais.
+  const mensagensAtuais = useRef(mensagens)
+  const origem = useRef(localizacao.origem)
+  useEffect(() => {
+    mensagensAtuais.current = mensagens
+    origem.current = localizacao.origem
+  }, [mensagens, localizacao.origem])
 
   useEffect(() => {
     fim.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
   }, [mensagens, enviando])
 
-  async function enviar(pergunta: string) {
+  const ocupado = useRef(false)
+  const enviar = useCallback(async (pergunta: string) => {
     const limpa = pergunta.trim()
-    if (!limpa || enviando) return
+    if (!limpa || ocupado.current) return
+    ocupado.current = true
 
-    const historico: MensagemDoChat[] = [...mensagens, { papel: 'usuario', texto: limpa }]
+    const historico: MensagemDoChat[] = [...mensagensAtuais.current, { papel: 'usuario', texto: limpa }]
     setMensagens(historico)
     setTexto('')
     setErro('')
     setEnviando(true)
     try {
-      const { resposta, fonte, fontes, produtos, lojas } = await perguntarAoAssistente(historico, localizacao.origem)
+      const { resposta, fonte, fontes, produtos, lojas, lista_criada } = await perguntarAoAssistente(historico, origem.current)
       setFonte(fonte)
-      setMensagens([...historico, { papel: 'assistente', texto: resposta, fontes, produtos, lojas }])
+      setMensagens([...historico, { papel: 'assistente', texto: resposta, fontes, produtos, lojas, listaCriada: lista_criada }])
     } catch (falha) {
       setErro(falha instanceof Error ? falha.message : 'O assistente não respondeu.')
     } finally {
+      ocupado.current = false
       setEnviando(false)
     }
-  }
+  }, [])
+
+  // Comando de voz: a frase falada vai direto como pergunta.
+  const voz = useVoz(useCallback((frase: string) => void enviar(frase), [enviar]))
 
   function aoEnviar(evento: FormEvent) {
     evento.preventDefault()
@@ -130,7 +171,7 @@ function AssistentePrecos() {
               Assistente de preços
             </h2>
             <p className="text-sm text-muted">
-              Pergunte onde comprar mais barato perto de você.
+              Pergunte onde comprar mais barato ou peça uma lista. Também dá para falar.
             </p>
           </div>
         </div>
@@ -180,6 +221,7 @@ function AssistentePrecos() {
                 >
                   {mensagem.texto}
                 </p>
+                {mensagem.listaCriada && <ListaCriada lista={mensagem.listaCriada} />}
                 {mensagem.produtos && mensagem.produtos.length > 0 && (
                   <ProdutosDaResposta produtos={mensagem.produtos} />
                 )}
@@ -214,7 +256,7 @@ function AssistentePrecos() {
             </div>
           ))}
           {enviando && (
-            <p className="text-sm text-muted">Procurando os preços...</p>
+            <p className="text-sm text-muted">Pensando...</p>
           )}
           <div ref={fim} />
         </div>
@@ -236,21 +278,38 @@ function AssistentePrecos() {
         </div>
       )}
 
-      {erro && (
+      {(erro || voz.erro) && (
         <p role="alert" className="mt-3 text-sm text-red-700">
-          {erro}
+          {erro || voz.erro}
         </p>
       )}
 
       <form onSubmit={aoEnviar} className="mt-4 flex gap-2">
         <input
-          value={texto}
+          value={voz.ouvindo ? voz.parcial : texto}
           onChange={(evento) => setTexto(evento.target.value)}
+          readOnly={voz.ouvindo}
           maxLength={500}
-          placeholder="Ex.: onde o feijão está mais barato?"
+          placeholder={voz.ouvindo ? 'Pode falar...' : 'Ex.: onde o feijão está mais barato?'}
           aria-label="Pergunta para o assistente"
           className="h-11 min-w-0 flex-1 rounded-xl border border-line bg-white px-3.5 text-[15px] outline-none transition focus:border-brand-600 focus:ring-2 focus:ring-brand-100"
         />
+        {voz.disponivel && (
+          <button
+            type="button"
+            onClick={voz.ouvindo ? voz.parar : voz.ouvir}
+            disabled={enviando}
+            aria-label={voz.ouvindo ? 'Parar de ouvir' : 'Falar a pergunta'}
+            aria-pressed={voz.ouvindo}
+            className={`inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border transition disabled:opacity-60 ${
+              voz.ouvindo
+                ? 'animate-pulse border-red-300 bg-red-50 text-red-700'
+                : 'border-line bg-white text-brand-600 hover:border-brand-600'
+            }`}
+          >
+            {voz.ouvindo ? <Square size={16} aria-hidden="true" /> : <Mic size={18} aria-hidden="true" />}
+          </button>
+        )}
         <button
           type="submit"
           disabled={enviando || !texto.trim()}
