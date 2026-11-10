@@ -191,6 +191,10 @@ function Dashboard() {
       </div>
 
 
+      {/* A IA primeiro: é o jeito mais rápido de saber onde está mais barato. */}
+      <AssistentePrecos />
+
+
       <BuscaDoMenorPreco />
 
 
@@ -199,9 +203,6 @@ function Dashboard() {
           <InstalarApp aoFechar={fecharAvisoInstalar} />
         </div>
       )}
-
-
-      <AssistentePrecos />
 
 
       {erro && (

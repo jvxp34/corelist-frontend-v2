@@ -93,12 +93,13 @@ function ListaCriada({ lista }: { lista: ListaCriadaPeloChat }) {
 }
 
 
+// No celular aparecem só as duas primeiras.
 const SUGESTOES = [
   'Onde tem arroz mais barato perto de mim?',
-  'Qual o menor preço do café?',
+  'Crie uma lista com arroz, feijão e café',
   'Em qual mercado minha lista sai mais barata?',
   'Quanto gastei este mês?',
-  'Crie uma lista com arroz, feijão e café',
+  'Qual o menor preço do café?',
 ]
 
 
@@ -264,13 +265,13 @@ function AssistentePrecos() {
 
       {mensagens.length === 0 && (
         <div className="mt-4 flex flex-wrap gap-2">
-          {SUGESTOES.map((sugestao) => (
+          {SUGESTOES.map((sugestao, indice) => (
             <button
               key={sugestao}
               type="button"
               onClick={() => void enviar(sugestao)}
               disabled={enviando}
-              className="rounded-full border border-line px-3 py-1.5 text-sm text-ink transition hover:border-brand-600 hover:text-brand-800 disabled:opacity-60"
+              className={`${indice >= 2 ? 'hidden sm:inline-flex' : 'inline-flex'} rounded-full border border-line px-3 py-1.5 text-left text-sm text-ink transition hover:border-brand-600 hover:text-brand-800 disabled:opacity-60`}
             >
               {sugestao}
             </button>

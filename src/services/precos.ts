@@ -58,6 +58,8 @@ export interface ResumoDePreco {
   lojas: PrecoNaLoja[]
   // Nas opções de um tipo: R$ por kg ou por litro, para comparar tamanhos.
   preco_por?: { valor: string; unidade: 'kg' | 'L' } | null
+  // Quantas vezes a pessoa já pôs este produto numa lista (só nas opções de um tipo).
+  voce_comprou?: number
 }
 
 
@@ -68,6 +70,8 @@ export interface TipoDeProduto {
   lojas: number
   a_partir_de: { preco: string; medida: Medida } | null
   image_url: string
+  // Quantas vezes a pessoa já pôs produtos deste tipo numa lista.
+  voce_comprou?: number
 }
 
 export type Periodo = 7 | 30 | 90
