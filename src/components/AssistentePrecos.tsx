@@ -93,13 +93,9 @@ function ListaCriada({ lista }: { lista: ListaCriadaPeloChat }) {
 }
 
 
-// No celular aparecem só as duas primeiras.
 const SUGESTOES = [
   'Onde tem arroz mais barato perto de mim?',
   'Crie uma lista com arroz, feijão e café',
-  'Em qual mercado minha lista sai mais barata?',
-  'Quanto gastei este mês?',
-  'Qual o menor preço do café?',
 ]
 
 
@@ -160,25 +156,30 @@ function AssistentePrecos() {
   return (
     <section
       aria-labelledby="titulo-assistente"
-      className="rounded-2xl border border-line bg-white p-6 sm:p-7 lg:col-span-5"
+      className="relative overflow-hidden rounded-3xl bg-linear-to-br from-brand-600 via-brand-700 to-brand-800 p-5 text-white shadow-lg shadow-brand-600/20 sm:p-8 lg:col-span-5"
     >
-      <div className="flex flex-wrap items-start justify-between gap-3">
+      {/* Brilhos decorativos ao fundo. */}
+      <span aria-hidden="true" className="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full bg-white/10 blur-2xl" />
+      <span aria-hidden="true" className="pointer-events-none absolute -bottom-24 -left-10 h-56 w-56 rounded-full bg-fuchsia-400/20 blur-3xl" />
+
+      <div className="relative flex flex-wrap items-start justify-between gap-3">
         <div className="flex items-start gap-3">
-          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-brand-50 text-brand-600">
-            <Sparkles size={20} aria-hidden="true" />
+          <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-white/15 ring-1 ring-white/25">
+            <Sparkles size={24} aria-hidden="true" />
           </span>
           <div>
-            <h2 id="titulo-assistente" className="font-display text-lg font-semibold">
-              Assistente de preços
+            <p className="text-xs font-semibold uppercase tracking-wider text-white/75">Assistente com IA</p>
+            <h2 id="titulo-assistente" className="font-display text-2xl font-bold leading-tight sm:text-3xl">
+              Pergunte onde está mais barato
             </h2>
-            <p className="text-sm text-muted">
-              Pergunte onde comprar mais barato ou peça uma lista. Também dá para falar.
+            <p className="mt-1 text-sm text-white/85 sm:text-base">
+              Ela compara os preços das notas fiscais de Manaus. Dá para falar e pedir uma lista.
             </p>
           </div>
         </div>
 
         {localizacao.estado === 'ativa' ? (
-          <span className="inline-flex items-center gap-1 rounded-full bg-brand-50 px-2.5 py-1 text-xs font-semibold text-brand-800">
+          <span className="inline-flex items-center gap-1 rounded-full bg-white/15 px-2.5 py-1 text-xs font-semibold text-white ring-1 ring-white/25">
             <MapPin size={14} aria-hidden="true" />
             Usando sua localização
           </span>
@@ -187,7 +188,7 @@ function AssistentePrecos() {
             type="button"
             onClick={localizacao.pedir}
             disabled={localizacao.estado === 'buscando'}
-            className="inline-flex items-center gap-1 text-sm font-semibold text-brand-600 hover:text-brand-800 disabled:opacity-60"
+            className="inline-flex items-center gap-1 rounded-full bg-white/15 px-3 py-1.5 text-sm font-semibold text-white ring-1 ring-white/25 transition hover:bg-white/25 disabled:opacity-60"
           >
             <MapPin size={16} aria-hidden="true" />
             {localizacao.estado === 'buscando' ? 'Buscando...' : 'Usar minha localização'}
@@ -195,7 +196,11 @@ function AssistentePrecos() {
         )}
       </div>
 
-      {localizacao.origem && <OndeEstou origem={localizacao.origem} />}
+      {localizacao.origem && (
+        <div className="relative mt-3 rounded-2xl bg-white p-1 text-ink">
+          <OndeEstou origem={localizacao.origem} />
+        </div>
+      )}
       {localizacao.mensagem && (
         <p role="alert" className="mt-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
           {localizacao.mensagem}
@@ -205,7 +210,7 @@ function AssistentePrecos() {
       {mensagens.length > 0 && (
         <div
           aria-live="polite"
-          className="mt-4 max-h-80 space-y-3 overflow-y-auto rounded-xl bg-canvas p-3"
+          className="relative mt-5 max-h-96 space-y-3 overflow-y-auto rounded-2xl bg-white p-3 text-ink shadow-inner"
         >
           {mensagens.map((mensagem, indice) => (
             <div
@@ -264,14 +269,14 @@ function AssistentePrecos() {
       )}
 
       {mensagens.length === 0 && (
-        <div className="mt-4 flex flex-wrap gap-2">
-          {SUGESTOES.map((sugestao, indice) => (
+        <div className="relative mt-5 flex flex-wrap gap-2">
+          {SUGESTOES.map((sugestao) => (
             <button
               key={sugestao}
               type="button"
               onClick={() => void enviar(sugestao)}
               disabled={enviando}
-              className={`${indice >= 2 ? 'hidden sm:inline-flex' : 'inline-flex'} rounded-full border border-line px-3 py-1.5 text-left text-sm text-ink transition hover:border-brand-600 hover:text-brand-800 disabled:opacity-60`}
+              className={`inline-flex rounded-full bg-white/15 px-3.5 py-2 text-left text-sm font-medium text-white ring-1 ring-white/30 transition hover:bg-white/25 disabled:opacity-60`}
             >
               {sugestao}
             </button>
@@ -280,12 +285,12 @@ function AssistentePrecos() {
       )}
 
       {(erro || voz.erro) && (
-        <p role="alert" className="mt-3 text-sm text-red-700">
+        <p role="alert" className="relative mt-3 rounded-xl bg-white px-3 py-2 text-sm text-red-700">
           {erro || voz.erro}
         </p>
       )}
 
-      <form onSubmit={aoEnviar} className="mt-4 flex gap-2">
+      <form onSubmit={aoEnviar} className="relative mt-4 flex gap-2">
         <input
           value={voz.ouvindo ? voz.parcial : texto}
           onChange={(evento) => setTexto(evento.target.value)}
@@ -293,7 +298,7 @@ function AssistentePrecos() {
           maxLength={500}
           placeholder={voz.ouvindo ? 'Pode falar...' : 'Ex.: onde o feijão está mais barato?'}
           aria-label="Pergunta para o assistente"
-          className="h-11 min-w-0 flex-1 rounded-xl border border-line bg-white px-3.5 text-[15px] outline-none transition focus:border-brand-600 focus:ring-2 focus:ring-brand-100"
+          className="h-13 min-w-0 flex-1 rounded-2xl border-0 bg-white px-4 text-base text-ink shadow-md outline-none transition placeholder:text-slate-400 focus:ring-4 focus:ring-white/40"
         />
         {voz.disponivel && (
           <button
@@ -302,26 +307,26 @@ function AssistentePrecos() {
             disabled={enviando}
             aria-label={voz.ouvindo ? 'Parar de ouvir' : 'Falar a pergunta'}
             aria-pressed={voz.ouvindo}
-            className={`inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border transition disabled:opacity-60 ${
+            className={`inline-flex h-13 w-13 shrink-0 items-center justify-center rounded-2xl shadow-md transition disabled:opacity-60 ${
               voz.ouvindo
-                ? 'animate-pulse border-red-300 bg-red-50 text-red-700'
-                : 'border-line bg-white text-brand-600 hover:border-brand-600'
+                ? 'animate-pulse bg-red-500 text-white'
+                : 'bg-white text-brand-700 hover:bg-brand-50'
             }`}
           >
-            {voz.ouvindo ? <Square size={16} aria-hidden="true" /> : <Mic size={18} aria-hidden="true" />}
+            {voz.ouvindo ? <Square size={18} aria-hidden="true" /> : <Mic size={22} aria-hidden="true" />}
           </button>
         )}
         <button
           type="submit"
           disabled={enviando || !texto.trim()}
           aria-label="Enviar pergunta"
-          className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-600 text-white transition hover:bg-brand-700 disabled:opacity-60"
+          className="inline-flex h-13 w-13 shrink-0 items-center justify-center rounded-2xl bg-amber-400 text-ink shadow-md transition hover:bg-amber-300 disabled:bg-white/20 disabled:text-white/70 disabled:shadow-none"
         >
-          <Send size={18} aria-hidden="true" />
+          <Send size={20} aria-hidden="true" />
         </button>
       </form>
 
-      <p className="mt-2 text-xs text-muted">
+      <p className="relative mt-3 text-xs text-white/70">
         Os preços vêm das notas fiscais lidas no app e podem ter mudado. Os mercados do mapa (OpenStreetMap) servem só para a rota.
         {fonte === 'gemini' && ' Resposta escrita pelo Gemini, do Google.'}
         {fonte === 'groq' && ' Resposta escrita por um modelo aberto, via Groq.'}

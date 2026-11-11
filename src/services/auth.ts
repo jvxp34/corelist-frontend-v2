@@ -122,53 +122,6 @@ export async function entrar(email: string, senha: string) {
 }
 
 
-// Esqueci a senha: pede o e-mail com o link. A resposta é a mesma exista a
-// conta ou não (o backend não revela quais e-mails têm conta).
-export async function pedirLinkDeSenha(email: string): Promise<string> {
-  let response: Response
-  try {
-    response = await fetch(`${API_URL}/auth/senha/esqueci/`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email }),
-    })
-  } catch {
-    throw new Error('Não foi possível conectar ao servidor.')
-  }
-  if (response.status === 429) {
-    throw new Error('Muitos pedidos seguidos. Tente de novo daqui a uma hora.')
-  }
-  const dados = await response.json().catch(() => null)
-  if (!response.ok) {
-    throw new Error(dados?.detail ?? 'Não foi possível enviar o e-mail.')
-  }
-  return dados.detail
-}
-
-
-// Cria a senha nova com o uid e o token do link do e-mail.
-export async function redefinirSenha(uid: string, token: string, novaSenha: string) {
-  let response: Response
-  try {
-    response = await fetch(`${API_URL}/auth/senha/redefinir/`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ uid, token, nova_senha: novaSenha }),
-    })
-  } catch {
-    throw new Error('Não foi possível conectar ao servidor.')
-  }
-  if (response.status === 429) {
-    throw new Error('Muitas tentativas seguidas. Tente de novo daqui a uma hora.')
-  }
-  if (!response.ok) {
-    const dados = await response.json().catch(() => null)
-    const mensagem = dados?.nova_senha?.join(' ') ?? dados?.detail
-    throw new Error(mensagem ?? 'Não foi possível trocar a senha.')
-  }
-}
-
-
 // Cria a conta. Lança um Error com a mensagem do backend, se houver.
 export async function cadastrar(dados: {
   nome: string

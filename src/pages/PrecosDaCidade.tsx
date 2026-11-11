@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { ChevronDown, ChevronLeft, ChevronUp, MapPin, Navigation, Search, Star, X } from 'lucide-react'
+import { ChevronDown, ChevronLeft, ChevronUp, MapPin, Navigation, Search, X } from 'lucide-react'
 
 import AdicionarFoto from '../components/AdicionarFoto'
 import CreditoOpenFoodFacts from '../components/CreditoOpenFoodFacts'
@@ -29,49 +29,6 @@ const PERIODOS: Periodo[] = [7, 30, 90]
 const RAIOS: Raio[] = [2, 5, 10]
 // Lojas que aparecem no cartão antes de "Ver todas".
 const LOJAS_NO_CARTAO = 3
-
-// Filtro de ordem: primeiro o que a pessoa mais compra, ou pelo preço.
-type Ordem = 'mais_comprados' | 'menor' | 'maior'
-const ORDENS: { valor: Ordem; rotulo: string }[] = [
-  { valor: 'mais_comprados', rotulo: 'Que eu mais compro' },
-  { valor: 'menor', rotulo: 'Menor preço' },
-  { valor: 'maior', rotulo: 'Maior preço' },
-]
-
-
-function ordenar<T>(itens: T[], ordem: Ordem, preco: (item: T) => number | null, vezes: (item: T) => number) {
-  // sort é estável: em empate, fica a ordem que veio do servidor.
-  return [...itens].sort((a, b) => {
-    if (ordem === 'mais_comprados') return vezes(b) - vezes(a)
-    const pa = preco(a)
-    const pb = preco(b)
-    if (pa === null || pb === null) return (pa === null ? 1 : 0) - (pb === null ? 1 : 0)
-    return ordem === 'menor' ? pa - pb : pb - pa
-  })
-}
-
-
-function precoDoTipo(tipo: TipoDeProduto) {
-  return tipo.a_partir_de ? Number(tipo.a_partir_de.preco) : null
-}
-
-
-// Preço por kg/litro quando dá para comparar; senão, o mais barato da opção.
-function precoDaOpcao(resumo: ResumoDePreco) {
-  const referencia = resumo.mais_barato_agora ?? resumo.lojas[0]
-  if (resumo.preco_por) return Number(resumo.preco_por.valor)
-  return referencia ? Number(referencia.preco) : null
-}
-
-
-function VoceCompra({ vezes }: { vezes: number }) {
-  return (
-    <span className="inline-flex items-center gap-1 rounded-full bg-brand-600 px-2 py-0.5 text-[11px] font-semibold text-white">
-      <Star size={11} aria-hidden="true" fill="currentColor" />
-      Você compra{vezes > 1 ? ` · ${vezes}x` : ''}
-    </span>
-  )
-}
 
 
 function NomeEDistancia({ loja }: { loja: LojaDoPreco }) {
@@ -157,14 +114,11 @@ function CartaoDoProduto({ resumo }: { resumo: ResumoDePreco }) {
   // de cada loja (mesma medida), com o aviso de que pode ter mudado.
   const visto = agora ? null : maisBaratoVisto(resumo.lojas)
 
-  const vezes = resumo.voce_comprou ?? 0
-
   return (
-    <li className={`rounded-2xl border bg-white p-4 sm:p-5 ${vezes ? 'border-brand-600 ring-1 ring-brand-100' : 'border-line'}`}>
+    <li className="rounded-2xl border border-line bg-white p-4 sm:p-5">
       <div className="flex items-start gap-3">
         <FotoProduto url={produto.image_url} nome={nome} tamanho="md" />
         <div className="min-w-0 flex-1">
-          {vezes > 0 && <div className="mb-1"><VoceCompra vezes={vezes} /></div>}
           <p className="font-semibold">{nome}</p>
           {detalhes && <p className="text-sm text-muted">{detalhes}</p>}
           {ilustrativa && <p className="text-[11px] text-muted">Foto ilustrativa</p>}
@@ -278,19 +232,15 @@ function CartaoDoProduto({ resumo }: { resumo: ResumoDePreco }) {
 // Preços de Manaus a partir das notas fiscais: onde está mais barato agora e
 // o menor preço em 7, 30 ou 90 dias (docs/PLANO_PRECOS_DA_CIDADE.md).
 function CartaoDoTipo({ tipo, aoEscolher }: { tipo: TipoDeProduto; aoEscolher: () => void }) {
-  const vezes = tipo.voce_comprou ?? 0
   return (
     <li>
       <button
         type="button"
         onClick={aoEscolher}
-        className={`flex w-full items-center gap-3 rounded-2xl border p-3 text-left transition hover:border-brand-600 ${
-          vezes ? 'border-brand-600 bg-brand-50/60' : 'border-line bg-white'
-        }`}
+        className="flex w-full items-center gap-3 rounded-2xl border border-line bg-white p-3 text-left transition hover:border-brand-600"
       >
         <FotoProduto url={tipo.image_url} nome={tipo.tipo} tamanho="sm" />
         <span className="min-w-0 flex-1">
-          {vezes > 0 && <span className="mb-0.5 block"><VoceCompra vezes={vezes} /></span>}
           <span className="block truncate font-semibold">{tipo.tipo}</span>
           <span className="block truncate text-xs text-muted">
             {tipo.opcoes} {tipo.opcoes === 1 ? 'opção' : 'opções'} · {tipo.lojas}{' '}
@@ -324,7 +274,6 @@ function PrecosDaCidade() {
   const [erro, setErro] = useState('')
   const localizacao = useLocalizacao()
   const [raio, setRaio] = useState<Raio | null>(5)
-  const [ordem, setOrdem] = useState<Ordem>('mais_comprados')
   const origem = localizacao.origem
 
   function escolherTipo(tipo: string | null) {
@@ -367,8 +316,6 @@ function PrecosDaCidade() {
     .filter(Boolean)
 
   const termo = texto.trim()
-  const tiposEmOrdem = tipos && ordenar(tipos, ordem, precoDoTipo, (t) => t.voce_comprou ?? 0)
-  const resultadosEmOrdem = resultados && ordenar(resultados, ordem, precoDaOpcao, (r) => r.voce_comprou ?? 0)
 
   return (
     <div className="mx-auto max-w-3xl">
@@ -485,39 +432,19 @@ function PrecosDaCidade() {
         )}
       </div>
 
-      <div className="mt-3 flex flex-wrap items-center gap-2">
-        <span className="text-sm font-semibold text-ink">Ordenar:</span>
-        <div role="radiogroup" aria-label="Ordenar produtos" className="flex flex-wrap gap-1">
-          {ORDENS.map((opcao) => (
-            <button
-              key={opcao.valor}
-              type="button"
-              role="radio"
-              aria-checked={ordem === opcao.valor}
-              onClick={() => setOrdem(opcao.valor)}
-              className={`h-9 rounded-lg px-3 text-sm font-semibold ring-1 transition ${
-                ordem === opcao.valor ? 'bg-brand-600 text-white ring-brand-600' : 'bg-white text-muted ring-line hover:text-ink'
-              }`}
-            >
-              {opcao.rotulo}
-            </button>
-          ))}
-        </div>
-      </div>
-
       {erro && (
         <p role="alert" className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
           {erro}
         </p>
       )}
 
-      {!tipoEscolhido && tiposEmOrdem !== null && tiposEmOrdem.length > 0 && (
+      {!tipoEscolhido && tipos !== null && tipos.length > 0 && (
         <section aria-label="Tipos de produto" className="mt-6">
           <h2 className="mb-2 px-1 text-xs font-semibold uppercase tracking-wider text-muted">
             {termo ? 'Tipos de produto' : 'Escolha um produto'}
           </h2>
           <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-            {tiposEmOrdem.map((tipo) => (
+            {tipos.map((tipo) => (
               <CartaoDoTipo key={tipo.tipo} tipo={tipo} aoEscolher={() => escolherTipo(tipo.tipo)} />
             ))}
           </ul>
@@ -547,17 +474,15 @@ function PrecosDaCidade() {
         </div>
       )}
 
-      {resultadosEmOrdem !== null && resultadosEmOrdem.length > 0 && (
+      {resultados !== null && resultados.length > 0 && (
         <>
           <h2 className="mb-2 mt-6 px-1 text-xs font-semibold uppercase tracking-wider text-muted">
             {tipoEscolhido
-              ? `${resultadosEmOrdem.length} ${resultadosEmOrdem.length === 1 ? 'opção' : 'opções'}${
-                  ordem === 'maior' ? ', da mais cara por kg ou litro' : ordem === 'menor' ? ', da mais barata por kg ou litro' : ''
-                }`
+              ? `${resultados.length} ${resultados.length === 1 ? 'opção' : 'opções'}, da mais barata por kg ou litro`
               : 'Produtos'}
           </h2>
           <ul className="space-y-3">
-            {resultadosEmOrdem.map((resumo) => (
+            {resultados.map((resumo) => (
               <CartaoDoProduto key={resumo.produto.id} resumo={resumo} />
             ))}
           </ul>
