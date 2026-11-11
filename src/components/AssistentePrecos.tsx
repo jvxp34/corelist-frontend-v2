@@ -156,7 +156,7 @@ function AssistentePrecos() {
   return (
     <section
       aria-labelledby="titulo-assistente"
-      className="relative -mx-4 overflow-hidden bg-linear-to-br from-brand-600 via-brand-700 to-brand-800 px-4 py-6 text-white shadow-lg shadow-brand-600/20 sm:mx-0 sm:rounded-3xl sm:p-8 lg:col-span-5"
+      className="relative overflow-hidden rounded-3xl bg-linear-to-br from-brand-600 via-brand-700 to-brand-800 p-4 text-white shadow-lg shadow-brand-600/20 sm:p-8 lg:col-span-5"
     >
       {/* Brilhos decorativos ao fundo. */}
       <span aria-hidden="true" className="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full bg-white/10 blur-2xl" />
