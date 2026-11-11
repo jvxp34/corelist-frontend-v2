@@ -197,8 +197,8 @@ function AssistentePrecos() {
       </div>
 
       {localizacao.origem && (
-        <div className="relative mt-3 rounded-2xl bg-white p-1 text-ink">
-          <OndeEstou origem={localizacao.origem} />
+        <div className="relative mt-3">
+          <OndeEstou origem={localizacao.origem} escuro />
         </div>
       )}
       {localizacao.mensagem && (
