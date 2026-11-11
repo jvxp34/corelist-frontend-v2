@@ -48,6 +48,11 @@ async function renovarToken(): Promise<string | null> {
 function encerrarSessao() {
   localStorage.removeItem('access_token')
   localStorage.removeItem('refresh_token')
+  try {
+    sessionStorage.removeItem('conversa-assistente')  // a conversa da IA (services/assistente.ts)
+  } catch {
+    // Nada a fazer.
+  }
 
   if (window.location.pathname !== '/login') {
     window.location.assign('/login?expirou=1')

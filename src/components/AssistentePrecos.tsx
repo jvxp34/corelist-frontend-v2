@@ -8,6 +8,10 @@ import OndeEstou from './OndeEstou'
 import { useLocalizacao } from '../hooks/useLocalizacao'
 import { useVoz } from '../hooks/useVoz'
 import {
+  aguardandoResposta,
+  EVENTO_DA_CONVERSA,
+  guardarConversa,
+  lerConversa,
   perguntarAoAssistente,
   type ListaCriadaPeloChat,
   type LojaDoChat,
@@ -103,11 +107,12 @@ const SUGESTOES = [
 // grátis) responde com o histórico de preços das notas fiscais lidas no app;
 // os mercados perto (OpenStreetMap) servem só para a rota.
 function AssistentePrecos() {
-  const [mensagens, setMensagens] = useState<MensagemDoChat[]>([])
+  // A conversa continua ao voltar para o Início (some quando o app é fechado).
+  const [mensagens, setMensagens] = useState<MensagemDoChat[]>(() => lerConversa().mensagens)
   const [texto, setTexto] = useState('')
-  const [enviando, setEnviando] = useState(false)
+  const [enviando, setEnviando] = useState(aguardandoResposta)
   const [erro, setErro] = useState('')
-  const [fonte, setFonte] = useState<RespostaDoAssistente['fonte'] | null>(null)
+  const [fonte, setFonte] = useState<RespostaDoAssistente['fonte'] | null>(() => lerConversa().fonte)
   const localizacao = useLocalizacao()
   const fim = useRef<HTMLDivElement>(null)
   // enviar() é chamado também pela voz: lê sempre o histórico e a localização atuais.
@@ -118,11 +123,34 @@ function AssistentePrecos() {
     origem.current = localizacao.origem
   }, [mensagens, localizacao.origem])
 
+  // Rola até a última mensagem, mas não ao abrir a tela com a conversa guardada
+  // (a página ficaria rolada para baixo).
+  const primeiraVez = useRef(true)
   useEffect(() => {
+    if (primeiraVez.current) {
+      primeiraVez.current = false
+      return
+    }
     fim.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
   }, [mensagens, enviando])
 
-  const ocupado = useRef(false)
+  const ocupado = useRef(aguardandoResposta())
+
+  // A resposta pode chegar depois que a pessoa saiu e voltou ao Início: a tela
+  // nova lê a conversa guardada quando ela muda.
+  useEffect(() => {
+    function atualizar() {
+      const conversa = lerConversa()
+      setMensagens(conversa.mensagens)
+      setFonte(conversa.fonte)
+      ocupado.current = aguardandoResposta()
+      setEnviando(aguardandoResposta())
+    }
+    window.addEventListener(EVENTO_DA_CONVERSA, atualizar)
+    // A resposta pode ter chegado entre abrir a tela e começar a escutar.
+    atualizar()
+    return () => window.removeEventListener(EVENTO_DA_CONVERSA, atualizar)
+  }, [])
   const enviar = useCallback(async (pergunta: string) => {
     const limpa = pergunta.trim()
     if (!limpa || ocupado.current) return
@@ -130,14 +158,22 @@ function AssistentePrecos() {
 
     const historico: MensagemDoChat[] = [...mensagensAtuais.current, { papel: 'usuario', texto: limpa }]
     setMensagens(historico)
+    guardarConversa({ mensagens: historico, fonte: lerConversa().fonte }, true)
     setTexto('')
     setErro('')
     setEnviando(true)
     try {
       const { resposta, fonte, fontes, produtos, lojas, lista_criada } = await perguntarAoAssistente(historico, origem.current)
       setFonte(fonte)
-      setMensagens([...historico, { papel: 'assistente', texto: resposta, fontes, produtos, lojas, listaCriada: lista_criada }])
+      const conversa: MensagemDoChat[] = [
+        ...historico,
+        { papel: 'assistente', texto: resposta, fontes, produtos, lojas, listaCriada: lista_criada },
+      ]
+      setMensagens(conversa)
+      // Guarda direto: vale mesmo se a pessoa já tiver saído do Início.
+      guardarConversa({ mensagens: conversa, fonte })
     } catch (falha) {
+      guardarConversa({ mensagens: historico, fonte: lerConversa().fonte })
       setErro(falha instanceof Error ? falha.message : 'O assistente não respondeu.')
     } finally {
       ocupado.current = false

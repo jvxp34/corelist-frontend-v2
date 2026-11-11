@@ -61,6 +61,56 @@ export interface RespostaDoAssistente {
 }
 
 
+// A conversa fica guardada enquanto o app (a aba) está aberto, mesmo trocando
+// de tela. sessionStorage some quando a aba ou o app é fechado; sair da conta
+// também apaga (apagarConversa).
+const CHAVE_DA_CONVERSA = 'conversa-assistente'
+
+export interface ConversaGuardada {
+  mensagens: MensagemDoChat[]
+  fonte: RespostaDoAssistente['fonte'] | null
+}
+
+export function lerConversa(): ConversaGuardada {
+  try {
+    const dados = JSON.parse(sessionStorage.getItem(CHAVE_DA_CONVERSA) ?? 'null')
+    if (dados && Array.isArray(dados.mensagens)) return dados
+  } catch {
+    // Sem acesso ao armazenamento (janela anônima, por exemplo): começa vazio.
+  }
+  return { mensagens: [], fonte: null }
+}
+
+// Pergunta enviada e ainda sem resposta. Se a pessoa sair do Início e voltar
+// antes da resposta, a tela nova mostra "Pensando..." e recebe a resposta pelo
+// evento abaixo.
+let aguardando = false
+export const EVENTO_DA_CONVERSA = 'conversa-assistente'
+
+export function aguardandoResposta() {
+  return aguardando
+}
+
+export function guardarConversa(conversa: ConversaGuardada, esperandoResposta = false) {
+  aguardando = esperandoResposta
+  try {
+    sessionStorage.setItem(CHAVE_DA_CONVERSA, JSON.stringify(conversa))
+  } catch {
+    // Sem espaço ou sem acesso: a conversa só não fica guardada.
+  }
+  window.dispatchEvent(new Event(EVENTO_DA_CONVERSA))
+}
+
+export function apagarConversa() {
+  aguardando = false
+  try {
+    sessionStorage.removeItem(CHAVE_DA_CONVERSA)
+  } catch {
+    // Nada a fazer.
+  }
+}
+
+
 // POST lists/assistente/: o histórico vai inteiro (o backend corta o excesso).
 export async function perguntarAoAssistente(
   mensagens: MensagemDoChat[],

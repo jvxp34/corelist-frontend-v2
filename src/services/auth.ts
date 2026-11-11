@@ -1,5 +1,6 @@
 import API_URL from '../api/api'
 import { apiFetch } from '../api/cliente'
+import { apagarConversa } from './assistente'
 
 export interface Usuario {
   id: number
@@ -176,5 +177,6 @@ export function sair() {
 
   localStorage.removeItem('access_token')
   localStorage.removeItem('refresh_token')
+  apagarConversa()
   usuarioEmAndamento = null
 }
