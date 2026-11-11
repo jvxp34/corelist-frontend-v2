@@ -156,7 +156,7 @@ function AssistentePrecos() {
   return (
     <section
       aria-labelledby="titulo-assistente"
-      className="relative overflow-hidden rounded-3xl bg-linear-to-br from-brand-600 via-brand-700 to-brand-800 p-5 text-white shadow-lg shadow-brand-600/20 sm:p-8 lg:col-span-5"
+      className="relative -mx-4 overflow-hidden bg-linear-to-br from-brand-600 via-brand-700 to-brand-800 px-4 py-6 text-white shadow-lg shadow-brand-600/20 sm:mx-0 sm:rounded-3xl sm:p-8 lg:col-span-5"
     >
       {/* Brilhos decorativos ao fundo. */}
       <span aria-hidden="true" className="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full bg-white/10 blur-2xl" />
@@ -210,7 +210,7 @@ function AssistentePrecos() {
       {mensagens.length > 0 && (
         <div
           aria-live="polite"
-          className="relative mt-5 max-h-96 space-y-3 overflow-y-auto rounded-2xl bg-white p-3 text-ink shadow-inner"
+          className="relative mt-5 max-h-[60vh] space-y-3 overflow-y-auto rounded-2xl bg-white p-3 text-ink shadow-inner sm:max-h-96"
         >
           {mensagens.map((mensagem, indice) => (
             <div
@@ -219,7 +219,7 @@ function AssistentePrecos() {
             >
               <div className="max-w-[85%]">
                 <p
-                  className={`whitespace-pre-line rounded-2xl px-3.5 py-2 text-[15px] ${
+                  className={`whitespace-pre-line rounded-2xl px-3.5 py-2.5 text-base sm:text-[15px] ${
                     mensagem.papel === 'usuario'
                       ? 'bg-brand-600 text-white'
                       : 'border border-line bg-white text-ink'
@@ -276,7 +276,7 @@ function AssistentePrecos() {
               type="button"
               onClick={() => void enviar(sugestao)}
               disabled={enviando}
-              className={`inline-flex rounded-full bg-white/15 px-3.5 py-2 text-left text-sm font-medium text-white ring-1 ring-white/30 transition hover:bg-white/25 disabled:opacity-60`}
+              className={`inline-flex w-full rounded-2xl bg-white/15 px-4 py-3 text-left text-base font-medium sm:w-auto sm:rounded-full sm:px-3.5 sm:py-2 sm:text-sm text-white ring-1 ring-white/30 transition hover:bg-white/25 disabled:opacity-60`}
             >
               {sugestao}
             </button>
@@ -290,7 +290,7 @@ function AssistentePrecos() {
         </p>
       )}
 
-      <form onSubmit={aoEnviar} className="relative mt-4 flex gap-2">
+      <form onSubmit={aoEnviar} className="relative mt-4 flex flex-wrap gap-2 sm:flex-nowrap">
         <input
           value={voz.ouvindo ? voz.parcial : texto}
           onChange={(evento) => setTexto(evento.target.value)}
@@ -298,7 +298,7 @@ function AssistentePrecos() {
           maxLength={500}
           placeholder={voz.ouvindo ? 'Pode falar...' : 'Ex.: onde o feijão está mais barato?'}
           aria-label="Pergunta para o assistente"
-          className="h-13 min-w-0 flex-1 rounded-2xl border-0 bg-white px-4 text-base text-ink shadow-md outline-none transition placeholder:text-slate-400 focus:ring-4 focus:ring-white/40"
+          className="h-14 w-full min-w-0 rounded-2xl border-0 bg-white px-4 text-base text-ink shadow-md sm:h-13 sm:w-auto sm:flex-1 outline-none transition placeholder:text-slate-400 focus:ring-4 focus:ring-white/40"
         />
         {voz.disponivel && (
           <button
@@ -307,22 +307,24 @@ function AssistentePrecos() {
             disabled={enviando}
             aria-label={voz.ouvindo ? 'Parar de ouvir' : 'Falar a pergunta'}
             aria-pressed={voz.ouvindo}
-            className={`inline-flex h-13 w-13 shrink-0 items-center justify-center rounded-2xl shadow-md transition disabled:opacity-60 ${
+            className={`inline-flex h-13 flex-1 items-center justify-center gap-2 rounded-2xl font-semibold shadow-md transition disabled:opacity-60 sm:w-13 sm:flex-none ${
               voz.ouvindo
                 ? 'animate-pulse bg-red-500 text-white'
                 : 'bg-white text-brand-700 hover:bg-brand-50'
             }`}
           >
             {voz.ouvindo ? <Square size={18} aria-hidden="true" /> : <Mic size={22} aria-hidden="true" />}
+            <span className="sm:hidden">{voz.ouvindo ? 'Parar' : 'Falar'}</span>
           </button>
         )}
         <button
           type="submit"
           disabled={enviando || !texto.trim()}
           aria-label="Enviar pergunta"
-          className="inline-flex h-13 w-13 shrink-0 items-center justify-center rounded-2xl bg-amber-400 text-ink shadow-md transition hover:bg-amber-300 disabled:bg-white/20 disabled:text-white/70 disabled:shadow-none"
+          className="inline-flex h-13 flex-1 items-center justify-center gap-2 rounded-2xl bg-amber-400 font-semibold sm:w-13 sm:flex-none text-ink shadow-md transition hover:bg-amber-300 disabled:bg-white/20 disabled:text-white/70 disabled:shadow-none"
         >
           <Send size={20} aria-hidden="true" />
+          <span className="sm:hidden">Enviar</span>
         </button>
       </form>
 
